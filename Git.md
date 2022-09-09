@@ -31,6 +31,8 @@ known_hosts不存在：git clone+SSH地址
 
 ssh -T git@github.com：测试是否连接成功
 
+git remote add origin 仓库地址：将远程仓库和本地仓库关联并起别名
+
 ## **命令**
 
 git init：初始化本地仓库，告诉git这个文件夹需要版本控制，之后会出现.git文件夹，这是隐藏文件夹，所有git记录保存在这里
@@ -60,6 +62,10 @@ git branch -d name：删除分支
 git branch -D name：强制删除分支，没有提示
 
 git checkout -b name：创建分支并切换
+
+git push origin master：本地仓库与云端仓库同步合并
+
+git pull --rebase origin：拉取合并云端仓库
 
 **不想提交某些文件到本地版本库和远程仓库时：**
 
