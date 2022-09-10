@@ -1,5 +1,4 @@
 # Git
-ttttttttttttttt
 ## **工作区域**
 
 1. 工作区
@@ -33,6 +32,8 @@ ssh -T git@github.com：测试是否连接成功
 
 git remote add origin 仓库地址：将远程仓库和本地仓库关联并起别名
 
+**仓库地址：**![image-20220910144605216](Git.assets/image-20220910144605216.png)
+
 ## **命令**
 
 git init：初始化本地仓库，告诉git这个文件夹需要版本控制，之后会出现.git文件夹，这是隐藏文件夹，所有git记录保存在这里
@@ -65,7 +66,7 @@ git checkout -b name：创建分支并切换
 
 git push origin master：本地仓库与云端仓库同步合并
 
-git pull --rebase origin：拉取合并云端仓库
+git pull --rebase origin 分支：拉取合并云端仓库，确保本地工作区是干净的，如果本地修改的内容没完全commit或者stash，就会rebase失败
 
 **不想提交某些文件到本地版本库和远程仓库时：**
 
