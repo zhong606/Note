@@ -4,7 +4,7 @@
 
 + 在add_executable里直接加你的.cu文件，和.cpp一样
 
-  ![image-20220803121841033](C:\Users\zh\AppData\Roaming\Typora\typora-user-images\image-20220803121841033.png)
+  ![image-20220919162047656](CUDA.assets/image-20220919162047656.png)
 
 #### CUDA编译器兼容C++17
 
@@ -22,7 +22,7 @@
 
 + 这里的kernel函数在GPU上执行，称为核函数，用  __ global __ 修饰的就是核函数
 
-  ![image-20220803134151103](C:\Users\zh\AppData\Roaming\Typora\typora-user-images\image-20220803134151103.png) 
+  ![image-20220919162105115](CUDA.assets/image-20220919162105115.png)
 
 + 执行上述代码，不会打印hello world
 
@@ -30,7 +30,7 @@
 
 + 因此可以调用cudaDeviceSynchronize()，让CPU陷入等待，等GPU完成队列的所有任务再返回。从而能够再main()推出前等到kernel再GPU上执行完
 
-  ![image-20220803135617566](C:\Users\zh\AppData\Roaming\Typora\typora-user-images\image-20220803135617566.png)
+  ![image-20220919162120508](CUDA.assets/image-20220919162120508.png)
 
 #### 定义在GPU上的设备函数
 
@@ -40,7 +40,7 @@
 
 + 即：host可以调用global，global可以调用device，device可以调用device
 
-  ![image-20220803140745021](C:\Users\zh\AppData\Roaming\Typora\typora-user-images\image-20220803140745021.png)
+  ![image-20220919162133531](CUDA.assets/image-20220919162133531.png)
 
 声明为内联函数
 
