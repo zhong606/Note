@@ -1050,30 +1050,26 @@ void PrintEntity(const Entity& e)			//不能修改e中的成员属性
 
 #### static
 
-​	在类或结构体外部使用static，链接将只是在内部，只能在定义它的cpp文件可见，类或结构体内部的static，将与类的所有实例共享内存
++ **类内**
+  + 不依赖对象，类公用的，在类外初始化，不能在.h文件初始化（重定义）要在.cpp文件初始化，而不管创建了多少个该类的对象。所有这些对象的静态数据成员都共享这一块静态存储空间。	
+  + 修饰成员函数：没有this指针，可以不依赖对象调用，类公用的，不可以声明为虚函数，不能直接调用类中的非静态成员
+  + **在类中使用static的原因：**
+    1. 可以让所有类实例之间共享数据
+    2. static与类有关
 
-​	定义全局静态变量（当前源文件）和局部静态变量（只能在所在函数中使用），作用域不同，都在全局区，只在当前cpp文件中可用，生命周期到程序退出时结束
++ **类外**
 
-**在类中使用static的原因：**
+  + 在类或结构体外部使用static，链接将只是在内部，只能在定义它的cpp文件可见
 
-1. 可以让所有类实例之间共享数据
-2. static与类有关
+  + static修饰类外变量：修饰全局，是全局静态变量(当前源文件)，生命周期到程序退出时结束，(存在静态区/全局区)
 
-**在类内**
+    ​									修饰局部，是局部静态变量(只能在所在函数中使用)，生命周期到程序退出时结束，(存在静态区/全局区)
 
-不依赖对象，类公用的，在类外初始化，不能在.h文件初始化（重定义）要在.cpp文件初始化，而不管创建了多少个该类的对象。所有这些对象的静态数据成员都**共享**这一块静态存储空间。	
+  + static局部变量不初始化时，默认值为0；
 
-修饰成员函数：没有this指针，可以不依赖对象调用，类公用的，不可以声明为虚函数，不能直接调用类中的非静态成员
+  + 普通局部变量不初始化时，默认值为随机值。
 
-**在类外**
-
-static修饰类外函数：只能在当前文件可见
-
-static修饰类外变量：修饰全局，是全局静态变量，生命周期到程序退出时结束，（存在全局区）
-
-​									修饰局部，是局部静态变量，生命周期到程序退出时结束，（存在全局区）
-
-
+  + static局部变量在编译阶段，函数还未执行的时候，就已经分配了变量空间。
 
 ![image-20220221130412115](C++.assets/image-20220221130412115.png)
 
@@ -1164,11 +1160,29 @@ int main()
 }
 ```
 
+```c
+#define mul(X,Y) X*Y
+printf("%d\n",mul(6+6,6+6));
+//输出48而不是144,说明只是简单的机械替换,应该把参数加上括号
+mul(X,Y) (X)*(Y);
+
+#define add(X,Y) (X)+(Y);
+printf("%d\n",10*add(6,6));
+//输出66而不是120,因该把整个宏定义加上括号
+add(X,Y) ((X)+(Y));
+```
+
+
+
 #### union
 
-​	**成员变量是共享同一块内存的**
+​	成员变量是共享同一块内存的。找到联合体中最大的数据类型，还必须满足是所有数据成员的整数倍（字节对齐，每四个字节对齐）
 
+![image-20221001195040056](C++.assets/image-20221001195040056.png)![image-20221001195307248](C++.assets/image-20221001195307248.png)
 
++ 修改一个成员的值会影响其他成员
+
+  ![image-20221001201858746](C++.assets/image-20221001201858746.png)![image-20221001201938762](C++.assets/image-20221001201938762.png)
 
 #### 重载操作符
 
@@ -1829,11 +1843,9 @@ int main()
 
 ​	注意当用pop_back 删除尾部的元素时,vector 的capacity 是不会变化的
 
-插入: O(N)
-
-查看: O(1)
-
-删除: O(N)
++ 插入: O(N)
++ 查看: O(1)
++ 删除: O(N)
 
 **reserve和resize的区别是什么？**
 
@@ -1843,17 +1855,19 @@ reserve只是开辟空间并不创建元素。而resize重新开辟空间并自�
 
 Vector是一个类，它里面有三个指针myfirst,mylast,myend.分别表示首地址，元素容量地址，容器容量地址。通过这三个指针分别表示容器的所有操作。
 
-优点：
+**优点：**
 
-1.动态数组，当空间大小不够时，可以自动扩增，每次扩增大小为原来的3倍或者1.5倍。
+1. 动态数组，当空间大小不够时，可以自动扩增，每次扩增大小为原来的3倍或者1.5倍。
 
-2.查询效率很高。
+2. 查询效率很高。
 
-缺点：
+**缺点：**
 
-1.扩增空间的时候需要重新指向一个连续的内存空间，效率低。
+1. 扩增空间的时候需要重新指向一个连续的内存空间，效率低。
 
-2.插入删除需要移动元素，效率低。
+2. 插入删除需要移动元素，效率低。
+
+##### vector和list区别
 
 1）vector底层实现是数组；list是双向 链表。
 
@@ -2097,6 +2111,26 @@ int main()
 
 删除: O(logN)
 
+**map优点：**
+
++ 有序性，这是map结构最大的优点，其元素的有序性在很多应用中都会简化很多的操作
+
++ map的查找、删除、增加等一系列操作时间复杂度稳定，都为logn
+
+**缺点：**
+
++ 查找、删除、增加等操作平均时间复杂度较慢，与n相关
+
+##### **map底层红黑树与AVL**
+
+平衡性方面（查找效率）， 插入节点方面，删除节点方面。
+
+因为avl树是**高度平衡**，而红黑树通过增加节点颜色从而实现**部分平衡**，这就导致，插入节点两者都可以最多两次实现复衡，而删除节点，红黑树最多三次旋转即可实现复衡，旋转的量级是O（1），而avl树需要维护从被删除节点到根节点这几个节点的平衡，旋转的量级是O（logn）,所以红黑树效率更高，开销更小，**但是因为红黑树是非严格平衡，所以它的查找效率比avl树低。**
+
+RB-Tree是功能、性能、空间开销的折中结果。
+
+总结：实际应用中，若搜索的次数远远大于插入和删除，那么选择AVL，如果搜索，插入删除次数几乎差不多，应该选择RB。
+
 ```c++
 void show(std::pair<char,int> pr)
 {
@@ -2140,6 +2174,15 @@ int main()
 
 删除: O(1)，最坏情况O(N)
 
+**unordered_map优点：**
+
++ 查找、删除、添加的速度快，时间复杂度为常数级O(c)
+
+**缺点：**
+
++ 因为unordered_map内部基于哈希表，以（key,value）对的形式存储，因此空间占用率高
++ Unordered_map的查找、删除、添加的时间复杂度不稳定，平均为O(c)，取决于哈希函数。极端情况下可能为O(n)
+
 #### set
 
 ​	集合（基于红黑树实现，相当于二分查找树）
@@ -2150,7 +2193,7 @@ int main()
 
 删除: O(logN)
 
-#### **set和vector的区别：**
+#### **set和vector的区别** 
 
 + 都是能存储一连串数据的容器
 + set会自动给其中的元素从小到大排序，而vector会保持插入时的顺序
@@ -3257,7 +3300,7 @@ template<class _Ty>
 
 ​	**当函数作为一个参数出现时，可以直接写函数的定义**
 
-【】（）mutable ->type {  }
+[ ]（）mutable ->type {  }
 
 1. 捕获列表：捕获（lamda表达式）外面的局部变量，以及this指针（静态和全局的不用捕获，直接能用）
 
@@ -3319,133 +3362,108 @@ int main()
 }
 ```
 
+**野指针**
+
+​	指针指向的位置是不正确的
+
+产生原因：释放内存后指针没有置为NULL
+
+危害：会出现非法访问的错误
+
+避免方法：
+
++ 初始化置NULL	
++ 申请内存判断是不是为NULL
++ 指针释放后置NULL
++ 使用智能指针
+
 #### **智能指针**
 
 ​	万物皆可对象，指针封装成类，构造，析构回收指针所指向的空间
 
-​	std 四个智能指针
+**智能指针是RAII(Resource Acquisition Is Initialization，资源获取即初始化)机制对普通指针进行的一层封装。这样使得智能指针的行为动作像一个指针，本质上却是一个对象**
 
-+ auto_ptr(c++98之后)：使用交出的太随意了，交出后，原指针为空，失效
-+ unique_ptr：作用域指针，超出作用域会被销毁，不能复制（转移指针控制权，可以通过移动构造函数，如果只是单纯想使用，函数传参，可以用get来获取指针），如果其中一个失效，那么就会释放指向的内存， 使用权传递的方式要求太严格
-+ shared_ptr：多个指针指向同一个堆空间，通过引用计数(use_counts),来记录有所有权的指针个数，当引用计数为0时，回收这个堆空间，存在循环应用，空间不释放
+作用：防止忘记delete释放内存，造成内存泄漏
+
++ **auto_ptr(c++98之后)：**使用交出的太随意了，交出后，原指针为空，失效
+
++ **unique_ptr：**作用域指针，超出作用域会被销毁，独享被管理对象指针所有权，不能拷贝和赋值，没有拷贝构造函数（转移指针控制权std::move()，可以通过移动构造函数，如果只是单纯想使用，函数传参（不可以直接传，会触发拷贝），可以用get来获取指针），如果其中一个失效，那么就会释放指向的内存。
+
+  ```c++
+  void f1() {
+      unique_ptr<int> p(new int(5));
+      unique_ptr<int> p2 = std::move(p);
+      //error，此时p指针为空: cout<<*p<<endl; 
+      cout<<*p2<<endl;
+  }
+  ```
+
+  + delete p;
+  + p = nullptr;
+  + unique_ptr将他们封装成一个操作，只需要p = nullptr，即可，不会保留一个空悬指针
+  + ![image-20220925131023725](C++.assets/image-20220925131023725.png)![image-20220925131059994](C++.assets/image-20220925131059994.png)![image-20220925132758108](C++.assets/image-20220925132758108.png)
+
++ **shared_ptr（原子操作，多线程安全）**：多个指针指向同一个堆空间，通过引用计数(use_counts)，来记录有所有权的指针个数，当引用计数为0时，回收这个堆空间，存在循环引用，空间不释放
+
++ ```c++
+  struct Father
+  {
+      shared_ptr<Son> son_;
+  };
+  
+  struct Son
+  {
+      shared_ptr<Father> father_;
+  };
+  
+  int main()
+  {
+      auto father = make_shared<Father>();
+      auto son = make_shared<Son>();
+  
+      father->son_ = son;
+      son->father_ = father;
+  
+      return 0;
+  }
+  //1.main 函数退出之前，Father 和 Son 对象的引用计数都是 2。
+  //2.son 指针销毁，这时 Son 对象的引用计数是 1。
+  //3.father 指针销毁，这时 Father 对象的引用计数是 1。
+  //4.由于 Father 对象和 Son 对象的引用计数都是 1，这两个对象都不会被销毁，从而发生内存泄露。
+  ```
+
++ 解决循环引用
+
++ ```c++
+  struct Father
+  {
+      shared_ptr<Son> son_;
+  };
+  
+  struct Son
+  {
+      weak_ptr<Father> father_;
+  };
+  
+  int main()
+  {
+      auto father = make_shared<Father>();
+      auto son = make_shared<Son>();
+  
+      father->son_ = son;
+      son->father_ = father;
+  
+      return 0;
+  }
+  ```
+
+  
+
 + ![image-20220914124033815](C++.assets/image-20220914124033815.png)
-+ weak_ptr：弱引用计数的共享使用权的只能指针，指向同一个空间引用技术不会加1
-
-#### 实现shared_ptr
-
-```c++
-#include<iostream>
-#include<utility>
-#include<vector>
-
-class ref_count
-{
-public:
-    int use_count(){return count;}
-    void inc_ref(){count++;}
-    int dec_ref(){count--;}
-private:
-    int count{ 1 }; 
-};
-
-template<class T>
-class shared_ptr{
-public:
-    shared_ptr() = default;
-    shared_ptr(T *p) : ptr(p){
-        if(ptr){
-            rep = new ref_count{};
-            std::cout << "skr" << std::endl;
-        }
-    }
-    shared_ptr(const shared_ptr& p) : ptr(p.ptr),rep(p.rep){//拷贝构造
-        if(rep){
-            rep->inc_ref();
-        }
-    }  
-    shared_ptr(shared_ptr&& p) : ptr(p.ptr),rep(p.rep){ //移动构造
-        p.ptr = nullptr;
-        p.rep = nullptr;
-    }     
-    ~shared_ptr(){
-        if(rep && rep->dec_ref()){
-            delete ptr;
-            delete rep;
-        }
-    }    
-
-    shared_ptr& operator=(const shared_ptr& p){//左值
-        shared_ptr{p}.swap(*this);
-        return *this;
-    }   
-    shared_ptr& operator=(shared_ptr&& p){//右值
-        shared_ptr{std::move(p)}.swap(*this);
-        return *this;
-    }       
-
-    void swap(shared_ptr& p){
-        std::swap(ptr,p.ptr);
-        std::swap(rep,p.rep);
-    }
-    void reset(T* p){
-        shared_ptr{p}.swap(*this);
-    }
-
-    T* get(){
-        return ptr;
-    }
-    T& operator*(){
-        return *ptr;
-    }
-    T* operator->(){
-        return ptr;
-    }
-
-    int use_count(){
-        return rep ? rep->use_count():0;
-    }
-    bool unique(){
-        return use_count() == 1;
-    }
-    operator bool(){                                //用在条件表达式中
-        return static_cast<bool>(ptr);
-    }
-private:
-    T *ptr {nullptr};
-    ref_count *rep {nullptr};
-};
-
-template <class T,class... Args>                                //变参模板
-auto make_shared(Args&&... args){                               //在函数中创建对象，并返回指针
-    return shared_ptr<T>{new T(std::forward<Args>(args)...)};
-}
-
-int main()
-{
-    shared_ptr<int> p = new int{1024};             //转换构造
-    // shared_ptr<int> p1(std::move(p));           //移动构造
-    // std::cout << p1.use_count() << std::endl;
-    std::cout << p.use_count() << std::endl;
-
-    // shared_ptr<int> p1 = p;                     //拷贝构造
-    shared_ptr<int> p1;
-    p1 = p;                                        //operator=
-    std::cout << p1.use_count() << std::endl;
-    std::cout << p.use_count() << std::endl;
-    std::cout << *p << std::endl;
-    {
-        shared_ptr<int> p2 = p1;
-        std::cout << p2.use_count() << std::endl;
-    }
-    std::cout << p1.use_count() << std::endl;
-
-    auto pp= make_shared<std::vector<int>>(3,3);
-    for(int i=0;i<3;i++){
-        std::cout << (*pp)[i] << " ";
-    }
-    return 0;
-}   
-```
++ **weak_ptr：**弱引用计数的共享使用权的智能指针，指向同一个空间引用计数不会加1，弱引用的拷贝与析构不会影响其引用计数器
++ 可以通过lock()随时产生一个新的shared_ptr作为强引用，但不lock的时候不影响计数
++ 如果失效（计数器归零）则expired()会返回false，且lock()也会返回nuullptr
++ ![image-20220925141741729](C++.assets/image-20220925141741729.png)
 
 #### 完美转发
 
@@ -3544,7 +3562,10 @@ int main()
    }
    ```
 
-   
+
+### 
+
+
 
 ### **C/C++比较**
 
@@ -3656,7 +3677,7 @@ typedef struct TEST{
 
 哈希表就是数组+哈希函数，其核心思想是利用数组可以按照下标索引随机访问数据的特性。
 
-**解决哈希冲突**
+### **解决哈希冲突**
 
 开放寻址法，就是当发生哈希冲突时，重新找到空闲的位置，然后插入元素。寻址方式有多种，常用的有线性寻址、二次方寻址、双重哈希寻址：
 
