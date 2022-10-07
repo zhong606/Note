@@ -16,6 +16,7 @@
 + 线程上下文切换比进程上下文切换要快的多
 
 ```c++
+//vs创建线程
 CreateThread(NULL,			//安全等级
             0,				//线程栈大小，默认1MB
             &ThreadProc,	//线程函数的地址
@@ -57,6 +58,8 @@ ResumeThread();		//挂起计数器-1
 
 ![image-20220917215859549](os.assets/image-20220917215859549.png)
 
+
+
 **sleep不能精准延时：**sleep的时间是告诉系统多长时间内不占用时间片，进入阻塞态，时间过后，进入就绪状态，线程被添加到就绪队列中，等待时间片的轮换。
 
 **并发问题：**多个线程或进程同时对一个资源进行读写操作，而导致结果错误或多次执行结果不一致
@@ -73,9 +76,7 @@ ResumeThread();		//挂起计数器-1
 
 ​										   3.效率（关键段效率更高，互斥量每次使用要切换到内核模式）	
 
-**常见的并发问题：**买票，双11下单
-
-**进程间通信：**事件、互斥量、信号量、dll、SOCKET、消息、共享内存
+**进程间通信(win)：**事件、互斥量、信号量、dll、SOCKET、消息、共享内存
 
 + 关键段（临界区） 同一时刻只允许一个线程访问一个代码段
 
@@ -524,72 +525,457 @@ int pipe (int fd[2])
 
 ​	有名管道帮助Linux下不相干的进程完成数据通信
 
-![image-20220914131833408](os.assets/image-20220914131833408.png)
++ 创建管道文件，管道文件类型为P，创建管道文件时命名 mkfifo tmp
+
++ ```c
+  mkfifo(const char &name,int mod);	//函数创建
+  ```
+
++ 并不是利用管道文件进行数据交互，管道文件与常规文件不同，没有存储能力
+
++ 有名管道使用时必须满足读写访问两种权限，才可以使用管道缓冲区，如果只有一种权限，那么会阻塞，等待另一种，但是一个进程满足两种权限，一样可以访问管道
 
 **特殊情况**
 
-![image-20220914132036690](os.assets/image-20220914132036690.png)
++ 管道模型为一个写端，多个独端，阻塞只对第一个读端生效，如果管道内没数据其他读端立即返回（多线程读，同属于一个进程，一个线程为阻塞读，其他线程可以为非阻塞
++ 写端写入数据量小于管道大小，为原子写
++ 写端写入数据量大于管道大小，为非原子写（传输效率高，速度较快开销小，用户需要校验，保证数据包完整）
 
 ##### mmap内存共享映射
 
-![image-20220914132154684](os.assets/image-20220914132154684.png)
+![](os.assets/image-20221002123205303.png)
+
++ 映射内存大小与映射文件的大小相等
++ 映射方式：
+  + 共享映射(MAP_SHARED)，sync同步机制，映射文件数据与映射内存数据实时同步
+  + 私有映射(MAP_PRIVATE)，私有映射会将映射文件的内容复制一份给映射内存
++ 数据加载：使用mmap记载磁盘数据比传统的read或fread高效
++ 大文件处理：使用mmap对大数据文件进行分段映射，并发处理‘
+
+```c
+#include<sys/mman.h>
+void *ptr = mmap(NULL,filesize,PROT_READ|PROT_WRITE,MAP_SHARED,fd,0);
+arg1:映射内存地址，使用者可以自行申请内存空间，作为映射内存，如果该参数为NULL，会自行申请一块内存;
+arg2:映射大小;
+arg3:映射内存权限,PROT_WRITE,PROT_READ,PROT_EXEC,PROT_NONE;
+arg4:映射方式,MAP_SHARED,MAP_PRIVATE;
+arg5:映射文件描述符;
+arg6:映射偏移量;
+//多线程拷贝，通过主函数参数传进去源文件的文件描述符，在主线程中，定义一个全局变量的指针，用来做文件映射使用，所有线程都可以使用到，给线程传参数时，要传开始拷贝下标和大小，所以，要传结构体
+```
+
+
 
 ##### 信号
 
-![image-20220914134208821](os.assets/image-20220914134208821.png)
++ kill 命令
++ kill -signo pid 终止特定进程
++ kill -signo -pgid 终止特定进程组
++ kill -l 查看所有系统支持的信号
++ 信号分类：
+  + 1-31：unix经典信号
+  + 34-64：自定义信号/实时信号
+  + 32、33：隐藏预留给NPTL线程库使用
 
-![image-20220914134227326](os.assets/image-20220914134227326.png)
 
-![image-20220914134254258](os.assets/image-20220914134254258.png)
 
-![image-20220914134313470](os.assets/image-20220914134313470.png)
++ linux下触发信号的几种方式
 
-![image-20220914134328161](os.assets/image-20220914134328161.png)
+  + 终端组合按键产生信号（只对前台进程有效）
 
-![image-20220914134359283](os.assets/image-20220914134359283.png)
+    1. ctrl+c (SIGINT|2) 结束进程
+
+    2. ctrl+\ (SIGUIT|3)  退出进程（核心转储）
+
+    3. ctrl+z (SIGTSTP|20) 挂起进程
+
+       通过jobs命令查看挂起的作业编号
+
+       fg 作业编号(唤醒到前台继续执行)
+
+       bg 作业编号(唤醒到后台继续执行)
+
+  + 命令产生信号
+
+  + 函数发送信号
+
+    ```c
+    kill(pid_t pid,int signo);	//向任意进程发送任意信号
+    raise(int signo);	//向调用进程发送信号
+    abort(void);	//向自身进程发送固定的SIGABRT
+    sigueue(pid_t pid,int signo,union sigval);	//向任意进程发送任意信号并且携带自定义数据包
+    ```
+
+  + 硬件异常触发信号
+
+    对内存进行非法使用(段错误)	SIGSEGV|11
+
+    CPU运算异常(浮点数例外)		SIGFPE|8
+
+    堆栈异常，调度异常(总线错误)	SIGBUS|7
+
+  + 软条件触发信号
+
+    读端终止，写端向管道写数据（软条件触发）内核向写端发送信号（SIGPIPE|13）
+
+    定时器开始计时定时器到时（软条件触发）内核向定时进程发送信号（SIGALRM|14）
+
+    unsigned int alarm(unsigned int seconds)	参数为定时的秒数，返回未定时购得秒数
+
++ 信号的三大行为与五种默认处理动作
+
+  行为三选一，不选位默认进程
+
+  ![image-20221002124942790](os.assets/image-20221002124942790.png)
+
++ 信号传递过程
+
+  向进程控制块PCB的task_struct中写入数据，内核发送信号，通过未决信号集变为未决信号，通过屏蔽字，变为递达信号，通过函数指针进行信号行为
+
+  ![image-20221002133032618](os.assets/image-20221002133032618.png)
+
+  通过未决信号集的信号，状态为未决信号
+
+  通过屏蔽字信号集的信号，状态为递达态信号
+
+  当某信号处于未决态时，内核将其未决信号集位设置为1，该信号转换为递达态，设置为0
+
+
+
++ 信号失效的三种方式
+
+  + 信号屏蔽
+
+    定义一个新的信号集，将信号集初始化为0，把想要屏蔽的信号位，通过sigaddset置为1，然后通过sigprocmask来替换信号集
+
+    ```c
+    sigset_t newset,oldset;	//信号集类型
+    sigemptyset(sigset_t set);	//初始化信号集，将所有信号位初始化为0
+    sigfillset(sigset_t *set);	//初始化信号集，将所有信号位初始化为1
+    sigaddset(sigset_t *set,int signo);	//对信号集中某一个信号位置1
+    sigdelset(sigset_t *set,int signo);	//对信号集中某一个信号位置0
+    int reval = sigismember(sigset_t *set,int signo);	//查看某信号集，特定信号位是0还是1
+    sigprocmask(SIG_SETMASK,&newset,&oldset);	//替换信号集,oldset如果部位NULL,会接收到当前的信号集
+    ```
+
+  + 信号忽略
+
+    定义新的信号行为结构体，里面自行更换设置信号行为newact.sa_handler=SIG_IGN，可以变为忽略行为，也可以变为捕捉行为，用sigaction()来修改信号的行为
+
+    ```c
+    struct sigaction newact,oldact;	//信号行为结构体
+    newact.sa_handler = SIG_DFL|SIG_IGN|SIG_ACTION;
+    newact.sa_flags = 0;	//如果行为设置用handler,flags = 0
+    newact.sa_mask;	//临时屏蔽字，避免多信号绑定相同的捕捉函数，引发调用异常或冲突，可以设置临时屏蔽字，在处理信号时屏蔽其				  他信号，避免冲突
+    sigaction(int signo,struct sigaction *newact,struct sigaction *oldact);	//修改信号的行为，将原有行为覆盖
+    ```
+
+  + 信号捕捉
+
+    定义一个新的信号行为结构体，按信号行为结构体中函数指针类型，定义实现捕捉函数，而后进行设置，将捕捉函数的地址存储到行为结构体中newact.handler = action;最好在设置一下sa_mask,在执行捕捉函数时，屏蔽其他信号，避免冲突
+
+    ```c
+    void (*sa_handler)(int);	//此接口捕捉函数，不支持用户传参，参数默认传递被捕捉的信号编号
+    if sa_handler.sa_flags = 0;
+    void(*sa_sigaction)(int,siginfo_t*,void*);	//支持用户自定义传参或利用信号进程通信
+    if sa_sigaction.sa_flags = SA_SIGINFO;
+    ```
+
++ 利用信号技术，优化僵尸进程回收
+
+  父子进程模型，当子进程结束，内核向其父进程发送SIGCHLD(IGN)信号，通知父进程进行回收处理，可以将SIGCHLD信号进行捕捉设置，捕捉函数完成回收操作
+
++ 高权集信号
+
+  + SIGKILL：只要发出必然杀死，无法失效
+  + SIGSTOP：只要发出必然挂起，无法失效
 
 #### 进程间关系
 
 ##### 进程组关系
 
-![image-20220914133237655](os.assets/image-20220914133237655.png)
++ 进程组构成：由一个组长进程与若干的组员构成（一般进程组时组长进程创建的）
+
++ ps ajx：查看进程间关系
+
++ 进程组组长标识：PID==PGID
+
++ 终端进程被创建默认就是组长进程
+
++ 终端进程传创建多个子进程（就近原则）将所有子进程归纳到父进程同组（成为组员）
+
++ 进程组的创建与销毁：一般由组长进程创建，进程组为空，内核回收该组
+
++ ```c++
+  kill -9 -PGID;
+  pid_t getpgrp(void);	//返回当前进程的组PGID
+  pid_t setpgid(pid_t pid,pid_t pgid);	//设置进程组，将一个进程转移到其他组中，也可以创建新组，使用时两个参数都传递相										  同的进程pid，为创建新组，创建进程组只允许组员进行
+  ```
+
+  
 
 ##### 进程会话关系
 
-![image-20220914133527720](os.assets/image-20220914133527720.png)
++ 进程会话关系构成：由一个会话发起者与若干个会话参与者构成
+
++ 会话发起者唯一标识：PID==PGID==SID
+
++ 会话发起者如果结束，会以组为单位结束会话参与者
+
++ 所有终端下执行的程序或进程都属于终端进程受限与会话
+
++ ```c
+  getsid(pid_t pid);	//返回当前进程的会话id,参数为进程PID
+  void setsid(void);	//为调用进程创建一个会话，为组员进程创建组并创建新会话
+  ```
 
 ##### 孤儿进程
 
-![image-20220914133601414](os.assets/image-20220914133601414.png)
++ 产生原因：父进程因异常原因结束退出，子进程变为孤儿进程，父进程结束，系统托管进程负责接收孤儿进程
 
-**守护进程（精灵进程）**
+##### **守护进程（精灵进程）**
 
-![image-20220914133717345](os.assets/image-20220914133717345.png)
++ 特征
+  + 孤儿进程后台执行
+  + 守护进程声明周期较长（随系统持续）
+  + 后台执行（周期暂停，条件触发）
++ 实现步骤
+  + 创建子进程
+  + 父进程终止退出
+  + 子进程创建新会话，脱离原有控制终端
+  + 关闭无用文件描述符（后台服务进程不允许访问前台）
 
 #### 线程
 
-![image-20220914135910703](os.assets/image-20220914135910703.png)
++ 线程间共享资源
+  + 全局资源
+  + 共享堆
+  + 文件描述符
+  + 进程工作目录
+  + PID、PGID、用户ID、用户组ID
+  + 信号行为共享
+  
++ 非共享资源
+  + 线程栈
+  + 线程屏蔽字
+  + 线程信息（TCB）
+  + 线程调度优先级
+  + ERRNO(全局变量）非共享
+  
++ 多进程
+  + 优点：可以获取更多系统资源（使用CPU），稳定性更好
+  + 缺点：系统开销较大，切换上下文，调度缓慢
+  
++ 多线程
+  + 优点：开销小，更轻量
+  + 缺点：稳定性比较差（线程崩溃导致进程终止），相较于多进程模型需要注意的开发细节更多（互斥、死锁）
 
-![image-20220914140350413](os.assets/image-20220914140350413.png)
++ 使用NPTL线程库中的方法，编译时必须链接线程库
 
-![image-20220914140418819](os.assets/image-20220914140418819.png)
+  ```bash
+  libpthread.so
+  gcc *.c -lpthread -o app
+  ```
 
-![image-20220914140429528](os.assets/image-20220914140429528.png)
++ 线程查看命令
 
-![image-20220914140500071](os.assets/image-20220914140500071.png)
+  ```bash
+  ps -eLf	//查看系统所有线程信息
+  ps -Lf pid	//查看指定进程中的线程信息
+  ```
+
++ ```c
+  //线程创建
+  pthread_t tid;	//线程id类型
+  int pthread_create(pthread_t *thread,const pthread_attr_t *attr,void *(*start_routine)(void*),void *arg);
+  arg1:线程创建成功，内核将线程id传出到thread变量中;
+  arg2:线程属性，传NULL标识使用默认线程属性;
+  arg3:线程工作地址，开发者定义线程任务并实现，线程创建后开始执行;
+  arg4:线程工作参数;
+  return value:
+  成功返回0，失败返回错误号;
+  ```
+  
++ ```c
+  //线程退出
+  void pthread_exit(void *retval);
+  //参数为线程退出码(整型)，其他线程可以对退出码回收检验;
+  ```
+
++ ```c
+  //线程id获取
+  pthread_t pthread_self(void);
+  ```
+
++ ```c
+  //线程回收，阻塞回收
+  int pthread_join(pthread_t thread,void **retval);
+  //如果一个线程是回收态线程，那么线程退出后需要join回收，否则会引起内存泄漏;
+  //retval:回收成功传出线程的退出码或返回值
+  //除主控线程外，其他线程也可以通过线程id进行回收;
+  ```
+
++ ```c
+  //线程分离
+  int pthread_detach(pthread_t thread);
+  ```
+
++ 线程的错误处理：判断线程函数的返回值，如果返回值大于0，标识该函数可能调用失败，返回值中存储了对应的错误号，通过strerror()，获取错误信息
+
++ 线程退出状态
+
+  + pthread_joinable：线程回收态，线程结束后需要手动回收资源
+  + pthread_detached：线程分离态，线程结束后内核自动回收资源
+  + 对一个已经设置成分离态的线程进行回收操作，回收操作失败
+  + 对一个已经处于回收阶段(join阻塞)的线程，进行分离设置，分离失败
+  + 默认情况下，所有被创建出的线程都是回收态线程，但是可以通过两种方式将其改变为分离态，一旦被设置为分离态，则无法逆转
+
++ ```c
+  //线程取消
+  int pthread_cancel(pthread_t thread);
+  //参数为要取消的线程id,可以通过该函数取消其他线程,线程取消没有限制,只要可以得到对方id,就可以取消
+  //线程取消需要被取消的线程需要系统调用,否则无法结束
+  void pthread_testcancel(void);
+  //该函数只产生一次系统调用
+  ```
+
++ ```c
+  //线程间信号传递
+  int pthread_kill(pthread_t thread,int sig);
+  //向指定线程发送任意信号
+  ```
+
++ ```c
+  //线程属性
+  //线程属性包括线程优先级，线程警戒缓冲区，线程权重指针，线程状态，线程栈大小，线程栈地址
+  pthread_attr_t attr;	//线程属性类型
+  pthread_attr_init(pthread_attr_t *attr);
+  pthread_attr_destroy(pthread_attr_t *attr);
+  
+  //修改线程属性中的退出状态
+  pthread_attr_setdetachstate(pthread_attr_t *attr,int detachstate);
+  //对线程属性进行设置，将其中的状态设置为分离或回收
+  pthread_attr_getdetachstate(pthread_attr_t *attr,int *detachstate);
+  //获取属性中的退出状态，传出到detachstate变量中
+  ```
+
++ 两种线程设置分离态的方式
+
+  + pthread_detach()：分离设置有可能失败
+  + 修改线程属性：时效性更强，因为线程一创建就是分离线程
+
++ 何时使用函数设置分离，何时使用属性设置分离？
+
+  + 多线程模型中，对分离线程批创建，修改属性设置分离
+  + 多线程模型中，退出状态是混合型，采用函数延迟设置
+
++ 修改属性中的线程栈信息，提高线程创建数量
+
+  ```c
+  int pthread_attr_setstack(pthread_attr_t *attr,void *stackaddr,size_t stacksize);
+  int pthread_attr_getstack(const pthread_attr_t *attr,void *stackaddr,size_t *stacksize);
+  //线程属性中栈地址需要使用者自行申请，并设置到线程属性，只设置线程栈大小，不申请地址，该设置时无效的
+  ```
+
+  
 
 #### **线程间通信**
 
++ 多线程访问互斥（解决多线程访问共享资源冲突问题）
+
 + 互斥锁
+
+  ```c
+  pthread_mutex_t;	//互斥锁类型
+  pthread_mutex_init(pthread_mutex_t *lock,pthread_mutexattr_t *attr);
+  arg1:互斥锁地址;
+  arg2:互斥锁属性地址，=NULL表示使用默认互斥锁属性;
+  
+  pthread_mutex_destroy(pthread_mutex_t *lock);
+  //使用destroy对互斥锁进行回收释放
+  pthread_mutex_lock(pthread_mutex_t *lock);
+  //上锁，创建临界区
+  pthread_mutex_unlock(pthread_mutex_t *lock);
+  //解锁
+  ```
+
 + 读写锁
+
+  ```c
+  //允许多个线程访问全局资源，读共享，写独占，读写互斥
+  pthread_rwlock_t;	//读写锁类型
+  pthread_rwlock_init(pthread_rwlock_t *lock,pthread_rwlockattr_t *attr);
+  arg1:读写锁地址;
+  arg2:读写锁属性，=NULL使用默认读写锁属性;
+  pthread_rwlock_destroy(pthread_rwlock_t *lock);
+  //使用destroy对读写锁进行回收释放
+  pthread_rwlock_rdlock(pthread_rwlock_t *lock);
+  //申请读锁
+  pthread_rwlock_wrlock(pthread_rwlock_t *lock);
+  //申请写锁
+  pthread_rwlock_unlock(pthread_rwlock_t *lock);
+  //解除读写锁
+  ```
+
++ 文件锁
+
+  基本特征与读写一致，使用文件锁要学会修改设置文件属性（文件锁属性）
+
+  ```c
+  struct flock;	//文件锁属性类型
+  l_type= F_RDLCK|F_WRLCK|F_UNLCK;	//文件锁设置关键字
+  l_whence = SEEK_SET|SEEK_CUR|SEEK_END;	//上锁的起始位置，绝对偏移量
+  l_start= 0;	//相对偏移量
+  l_len = 0;	//上锁长度，如果为0，默认上锁整个文件大小
+  l_pid;	//可以通过获取文件锁属性，查看pid，了解那个进程对文件进行了锁设置
+  
+  fcntl(int fd,int flags,struct flock *lock);	//文件属性设置函数
+  arg1:设置文件的描述符;
+  arg2:文件的操作方式，F_SETLKW(阻塞设置)，F_SETLK(非阻塞设置)，F_GETLK(获取属性);
+  ```
+
+  
+
++ 进程锁
+
+  多进程访问共享资源也要通过互斥锁限制资源访问，否则发生冲突，可以通过修改互斥锁属性，将线程互斥锁变更为进程互斥锁
+
+  ```c
+  pthread_mutexattr_t;	//互斥锁属性类型
+  pthread_mutexattr_setpshared(pthread_mutexattr_t *attr,int shared);	//修改互斥锁属性中的互斥锁类型
+  PTHREAD_PROCESS_SHARED;	//进程互斥锁关键字
+  PTHREAD_PROCESS_PRIVATE;	//线程互斥锁关键字
+  ```
+
++ 旋转锁
+
+  旋转锁与互斥锁不同之处在于不会阻塞，不停尝试申请，一直到成功获取资源为止，相比互斥锁，旋转锁的有效性更强，实时申请获取资源，互斥锁属性延时使用（阻塞）
+
+  旋转锁系统开销较大，进程等待处于R
+
+  互斥锁开销较小，进程等待处于S
+
 + 条件变量
 
-![image-20220914141424030](os.assets/image-20220914141424030.png)
+  经典的线程控制方式，可以根据特定条件控制线程，将线程挂起或者唤醒，生产者消费者模型就是该技术的典型应用
+  
+  条件变量可以简单理解为线程的挂起点，多线程可以挂在一个条件变量中，也可以唤醒这些线程，线程被挂起在那个条件变量上取决于条件
+  
+  ```c
+  pthread_cond_t;	//条件变量类型
+  pthread_cond_init(pthread_cond_t *cd,pthread_condattr *attr);
+  pthread_cond_destroy(pthread_cond_t *cd);
+  pthread_cond_wait(pthread_cond_t *cd,pthread_mutex_t *lock);
+  //两次调用:
+  //第一次调用:挂起当前线程并解锁互斥锁
+  //第二次调用:被唤醒后上锁互斥锁
+  pthread_cond_signal(pthread_cond_t *cd);
+  //随机唤醒一个被挂起在某条件变量上的线程;
+  pthread_cond_broadcast(pthread_cond_t *cd);
+  //唤醒所有被挂起在某条件变量上的线程
+  ```
+  
+  
 
-![image-20220914141500891](os.assets/image-20220914141500891.png)
 
-![image-20220914141512626](os.assets/image-20220914141512626.png)
 
-![image-20220914141522859](os.assets/image-20220914141522859.png)
-
-![image-20220914141529957](os.assets/image-20220914141529957.png)
