@@ -4,23 +4,23 @@
 
 + 安装llvm+clang，在github上下载
 
-  ![](C++.assets/image-20221210204342004-1673778706125-1.png)
+  ![image-20230115185229666](C++.assets/image-20230115185229666.png)
 
 + 安装任意版本的vs，打开x64 Native Tools Command Prompt控制台，输入code打开vscode（不是必须，这样可以防止后续生成窗口程序，链接windows库的时候出现错误）
 
 + 在vscode中ctrl+shift+p，打开CMake:Edit User-Local CMake Kits
 
-  ![](C++.assets/image-20221210204413565-1673778712199-3.png)
+  ![image-20230115185315195](C++.assets/image-20230115185315195.png)
 
   
 
 + 选择使用clang编译器
 
-  ![](C++.assets/image-20221210204503885-1673778718509-5.png)
+  ![image-20230115185337505](C++.assets/image-20230115185337505.png)
 
 + 终端输入ninja --version，查看是否安装上了ninja构建工具
 
-+ ![](C++.assets/image-20221210204526614-1673778721831-7.png)
++ ![image-20230115185356393](C++.assets/image-20230115185356393.png)
 
   按F7，成功生成
 
@@ -49,7 +49,7 @@
 
 + 下载语言服务器
 
-  ![](C++.assets/image-20221210204541115-1673778726110-9.png)
+  ![image-20230115185423412](C++.assets/image-20230115185423412.png)
 
 #### 程序的生成过程
 
