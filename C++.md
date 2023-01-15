@@ -1,57 +1,55 @@
-**VSCODE上CMAKE的安装（Windows）**
 
-1. 安装cmake，并添加到环境变量
 
-2. 安装cmake，CMake Tools插件
+### VSCODE+CLANG+CLANGD+CMAKE
 
-3. 文件->首选项->设置->拓展->Cmake:preferred Generators->settiings.json->
++ 安装llvm+clang，在github上下载
 
-   ```
-   "cmake.preferredGenerators": [
-    "MinGW Makefiles"
-    ]
-   ```
+  ![](D:\code\note\C++.assets\image-20221210204342004.png)
 
-4. Cmake:Cmake Path(cmake的安装路径)
++ 安装任意版本的vs，打开x64 Native Tools Command Prompt控制台，输入code打开vscode（不是必须，这样可以防止后续生成窗口程序，链接windows库的时候出现错误）
 
-   ![image-20220502230750600](C++.assets/image-20220502230750600.png)
++ 在vscode中ctrl+shift+p，打开CMake:Edit User-Local CMake Kits
 
-5. C/C++:选择配置->编译配置(JSON)->配置compilerPath、intelliSenseMode
+  ![](D:\code\note\C++.assets\image-20221210204413565.png)
 
-   ![image-20220512001757392](C++.assets/image-20220512001757392.png)
+  
 
-6. 运行
++ 选择使用clang编译器
 
-   ```bash
-   mkdir bulid
-   cd bulid
-   cmake -G "MinGW Makefiles" .. 
-   mingw32-make
-   ```
+  ![](D:\code\note\C++.assets\image-20221210204503885.png)
 
-   如果想用make执行，需要找到mingw32-make.exe文件，复制一份改名为make。
++ 终端输入ninja --version，查看是否安装上了ninja构建工具
 
-**VSCODE上CLANGD的安装**
++ ![](D:\code\note\C++.assets\image-20221210204526614.png)
 
-1. github上下载clangd的压缩包：https://github.com/clangd/clangd/releases
+  按F7，成功生成
 
-2. 直接运行bin下的exe
++ 安装clangd插件
 
-3. 在vscode上的终端运行clangd.exe
++ 配置clangd
 
-4. 安装clangd插件
+  ```
+  "clangd.arguments": [
+  "--background-index",
+  "--compile-commands-dir=build",  //compile_command.json相对路径，cmake默认生成在build，自行配置
+  "-j=12",
+  "--all-scopes-completion",
+  "--completion-style=detailed",
+  "--header-insertion=iwyu",
+  "--pch-storage=memory",
+  "--cross-file-rename",
+  "--enable-config",
+  "--fallback-style=WebKit",
+  "--pretty",
+  "--clang-tidy"
+  // 网上别人配置clang++，但我这边windows、linux实测不加这行也没啥问题，可能mac可能需要另外加
+  "--query-driver=clang++",
+  ],
+  ```
 
-5. 禁止使用微软的C/C++
++ 下载语言服务器
 
-6. 设置Clang:Path为clangd的安装位置
-
-7. 可以给clangd-server添加运行选项，Clangd:Arguments
-
-8. clangd需要提供每个文件的编译选项
-
-   ```bash
-   cmake .. -DCMAKE_EXPORT_COMPILE_COMMANDS=1
-   ```
+  ![](D:\code\note\C++.assets\image-20221210204541115.png)
 
 #### 程序的生成过程
 
@@ -584,11 +582,15 @@ inline int add(int a,int b)
 
 
 
+**类的大小**
+
 空类的大小为1B,用来占位
 
 类中的成员变量是在创建对象的时候存在，每个对象都有一份
 
 类中的成员函数是在编译的时候存在，只有一份，所有对象公用
+
+**类的大小与构造函数、析构函数、静态成员变量、以及其他成员函数无关，与普通成员变量、虚函数（指向虚函数表的指针，vptr，4/8字节）、继承（子类加父类）有关，虚继承会有一个指向虚基类表的指针，4/8个字节。**
 
 
 
@@ -880,12 +882,129 @@ int main()
 
 ![image-20220222220953320](C++.assets/image-20220222220953320.png)
 
+#### 虚继承
 
+​		虚继承是解决C++多重继承问题的一种手段，从不同途径继承来的同一基类，会在子类中存在多份拷贝。这将存在两个问题：其一，浪费存储空间；第二，存在二义性
 
-**抽象类和接口类**
+​		虚继承的引入主要是为了解决多继承环境下有歧义的层次组合问题（通常被称为“钻石问题”）
+
+```c++
+class Base
+{
+public:
+    Base(int n) : value(n)
+    { 
+        std::cout << "Base(" << n << ")"<< std::endl; // 输出传入值：Base(N)
+    }
+    Base() : value(0)
+    { 
+        std::cout << "Base()"<< std::endl; // 没有传入值：Base()
+    }
+    ~Base() { std::cout << "~Base()"<< std::endl; }
+    int value;
+};
+class One : public Base
+{
+public:
+    One() : Base(1) 
+    { 
+        std::cout << "One()"<< std::endl; 
+    }
+    ~One() { std::cout << "~One()"<< std::endl; }
+};
+class Two : public Base
+{
+public:
+    Two() : Base(2)
+    { 
+        std::cout << "Two()"<< std::endl; 
+    }
+    ~Two() { std::cout << "~Two()"<< std::endl; }
+};
+class Leaf : public One, public Two
+{
+public:
+    Leaf() : { std::cout << "Leaf()"<< std::endl; }
+    ~Leaf() { std::cout << "~Leaf()"<< std::endl; }
+};
+```
+
+![image-20221101135841864](C++.assets/image-20221101135841864.png)![image-20221101140044179](C++.assets/image-20221101140044179.png)
+
+在这个实现中，`Leaf`实例持有两个`Base`类的拷贝：第一个来自于`One`，第二个来自于`Two`。这样的实现使得下面语句：
+
+```c++
+Leaf lf;
+lf.value = 0; // 编译错误！
+```
+
+通常，我们会尽量避免一个`Leaf`对象持有多个`Base`类。这可以通过使用虚继承实现：我们可以在继承的子类添加`virtual`关键字：`class One : public `**virtual**` Base…`以及`class Two : public `**virtual**` Base…`。使用`virtual`关键字，`Leaf`类仅会调用一次`Base`类的构造函数，因而也就只构建了一个`Base`。`Leaf`内部只持有一个`Base`子对象（该子对象也会被`One`和`Two`“共享”）。这就是我们所需要的。
+
+那么问题来了，“编译器怎么知道该给`Base`的构造函数传哪个参数？”的确，我们有两个选择：`One`的构造函数调用了`Base(1)`，`Two`的构造函数调用了`Base(2)`。那么，我们究竟该选哪个？答案很明显：哪个都不选。`Leaf`的构造函数**直接**调用时，编译器选择的是`Base()`的默认构造函数，而不是`Base(`**1**`)`或者`Base(`**2**`)`。 
+
+编译器会隐式在`Leaf`初始化列表中添加`Base()`的调用，并忽略其它`Base()`构造函数的调用。因此，初始化列表类似这样：
+
+```c++
+class Leaf : public Base(), public One, public Two
+{
+    ...
+}
+//当然，我们也可以给Leaf的初始化列表显式添加Base(...)语句，例如，我们需要给构造函数传入参数 3，那么就可以这么写：
+//class Leaf : public Base(3), public One, public Two
+{
+    ...
+}
+```
+
+**虚继承应用**
+
++ 最终类
+
+所谓“最终类”，是一种能够在堆上或者栈上创建实例，但是不能被继承的类。换句话说，下面的代码是合法的：
+
+```c++
+Final fd;
+Final *pd = new Final();
+//但是，下面的代码则会给出一个编译错误：
+class Derived : public Final{};
+
+//在 C++ 标准引入final关键字之前的很长一段时间，最终类问题都是通过虚继承解决的。例如More C++ Idioms/Final Class这里所阐述的。其解决方案如下所示：
+
+class Seal
+{
+    friend class Final;
+    Seal() {}
+};
+class Final : public virtual Seal
+{
+public:
+    Final() {}
+};
+//继承Final会引发一个编译错误“不能访问Seal类的私有成员”：
+
+class Derived : public Final
+{
+public:
+    Derived() {} // 编译错误：
+                 // cannot access private member of class Seal
+};
+```
+
+这个技巧的关键是虚继承：`Derived`构造函数必须直接调用`Seal`的构造函数，而不能通过`Final`的构造函数间接调用。但是，这又是不允许的：`Seal`类只有私有构造函数，而`Derived`类又不是像`Final`那样是`Seal`的友元。`Final`类本身允许调用`Seal`的私有构造函数，因为它是`Seal`的友元。这就是为什么`Final`可以在栈上或者堆上创建对象。
+
+这个解决方案建立在虚继承的基础之上。如果移除继承声明`class Final : public `**virtual**` Seal`中的`virtual`关键字，`Derived`类就可以通过`Final`类间接调用`Seal`的构造函数（因为后者是`Seal`的友元），这个魔法就消失了。
+
++ 在构造函数中调用虚函数
+
+#### **抽象类和接口类**
 
 + 含有纯虚函数的类就是抽象类
-+ 所有函数都是纯虚函数的类就是接口类  
++ 所有函数都是纯虚函数的类就是接口类
+
+C++阻止一个类被实例化：
+
++ 抽象类
++ private构造函数
 
 **接口（纯虚函数）**
 
@@ -924,7 +1043,7 @@ int main()
 }
 ```
 
-**虚析构**
+#### **虚析构**
 
 ​	通过父类的指针完整删除一个子类的对象
 
@@ -2394,6 +2513,8 @@ return 0;
 */
 
 //懒汉式一般实现：非线程安全，getInstance返回的实例指针需要delete
+//缺点：会有内存泄漏的问题，解决办法可以用智能指针或者使用静态的嵌套类对象
+    
 class Singletion
 {
 private:
@@ -2437,6 +2558,36 @@ int main()
 	std::cout << s3.m_a << std::endl;
 	return 0;
 }
+
+//class Singleton
+//{
+//private:
+//	static Singleton* instance;
+//private:
+//	Singleton() { };
+//	~Singleton() { };
+//	Singleton(const Singleton&);
+//	Singleton& operator=(const Singleton&);
+//private:
+//	class Deletor {
+//	public:
+//		~Deletor() {
+//			if(Singleton::instance != NULL)
+//				delete Singleton::instance;
+//		}
+//	};
+//	static Deletor deletor;
+//public:
+//	static Singleton* getInstance() {
+//		if(instance == NULL) {
+//			instance = new Singleton();
+//		}
+//		return instance;
+//	}
+//};
+//
+//// init static member
+//Singleton* Singleton::instance = NULL;
 ```
 
 **线程安全**
@@ -2481,20 +2632,20 @@ Singleton* Singleton::getInstance()
 class Singletion
 {
 private:
-	static Singletion m_pSingletion;
+	static Singletion m_Singletion;		//C++类的静态成员变量，声明但未定义
 public:
 	int m_a;
 	static Singletion& getInstance()
 	{
-		return m_pSingletion;
+		return m_Singletion;
 	}
 private:
 	Singletion() {}
 	~Singletion(){}
-	Singletion(const Singletion&) {}
+	Singletion(const Singletion &) {}
 	
 };
-Singletion Singletion::m_pSingletion;
+Singletion Singletion::m_Singletion;		//定义
 
 int main()
 {
@@ -2503,7 +2654,34 @@ int main()
 	std::cout << s.m_a << std::endl;
 	return 0;
 }
+
+//静态成员变量的初始化/定义是被看做为它自身的类域中
+//私有构造函数的目的并不是禁止对象构造，其目的在于控制哪些代码能够调用这个构造函数，进而限制类对象的创建。私有的构造函数可以被该类	的所有成员函数（静态或非静态的）调用，该类的友元类或友元方法也能访问该类的私有函数
+//饿汉模式有一个缺点，m_Singletion是动态初始化（通过执行期间的Singletion构造函数调用），而懒汉模式的m_pSingletion是静态初始化（可通过编译期常量来初始化）。程序的第一条assembly（汇编语言）语句被执行之前，编译器就已经完成了静态初始化（通常静态初始化相关数值或动作（static initializers）就位于“内含可执行程序"的文件中，所以，程序被装载（loading）之际也就是初始化之时）。然而面对不同编译单元（translation unit:大致上你可以把编译单元视为可被编译的C++源码文件）中的动态初始化对象，C++并未定义其间的初始化顺序，这就是麻烦的主要根源，当调用getInstance()时可能返回一个尚未构造的对象）
+//简单来说，潜在问题在于no-local static对象（函数外的static对象）在不同编译单元中的初始化顺序是未定义的，如果在初始化完成之前调用 getInstance() 方法会返回一个未定义的实例。
 ```
+
+**local static**
+
+```c++
+//多线程安全 C++11后
+class Singleton
+{
+private:
+	Singleton() { };
+	~Singleton() { };
+	Singleton(const Singleton&);
+	Singleton& operator=(const Singleton&);
+public:
+	static Singleton& getInstance() 
+        {
+		static Singleton instance;
+		return instance;
+	}
+};
+```
+
+
 
 #### **模板方法模式**
 
@@ -3562,10 +3740,100 @@ int main()
    }
    ```
 
+### 现代C++中的多线程：std::thread
 
-### 
++ 错误：找不到符号pthread_create
++ std::thread是基于pthread
++ ![image-20221017143322933](C++.assets/image-20221017143322933.png)
++ 迅雷下载多线程，下载的时候，可以操作UI界面
++ 主线程等待子线程结束：join()
++ ![image-20221017153701584](C++.assets/image-20221017153701584.png)
 
+**std::thread的析构函数会销毁线程**
 
++ 作为一个C++类，std::thread同样遵循RAII思想和三五法则：因为管理着资源，他自定义了析构函数，删除了拷贝构造/赋值函数，但是提供了移动构造/赋值函数
++ 因此，当t1所在的函数退出时，就会调用std::thread的析构函数，就会销毁t1线程，t1线程的资源会被销毁，download函数用到的栈也会被销毁，出现错误。
+
+**析构函数不再销毁线程：detach()**
+
++ 调用成员函数detach()分离该线程——意味着线程的声明周期不再由当前std::thread对象管理，而是在线程退出以后自动销毁自己
++ 但是进程退出时还是会自动销毁
++ ![image-20221017161954876](C++.assets/image-20221017161954876.png)
++ 解决办法1：移动到全局线程池
++ ![image-20221017174319159](C++.assets/image-20221017174319159.png)
++ 解决办法2：main()退出后自动join全部线程
++ ![image-20221017174707293](C++.assets/image-20221017174707293.png)
+
++ C++20引入了std::jthread类，和std::thread不同在于：他的析构函数里会自动调用join()。
+
+**互斥量**
+
+**std::lock_guard：符合RAII思想的上锁和解锁**
+
++ 构造函数中会调用mtx.lock()，析构函数中会调用mtx.unlock()。从而退出函数作用域时能够自动解锁
++ ![image-20221017182433175](C++.assets/image-20221017182433175.png)
+
+**std::unique_lock：也符合RAII思想，但自由度更高**
+
++ std::lock_guard严格在析构时unlock()，但是有时候我们会希望提前unlock()。这时可以用std::unique_lock，它额外存储了一个flag表示是否已经被释放。他会在析构检测这个flag，如果没有释放，则调用unlock()，否则不调用。
++ 可以直接调用unique_lock的unlock()来提前解锁，即使忘记解锁也没关系，退出作用域时候它还会自动检查一遍要不要解锁
++ ![image-20221017183140762](C++.assets/image-20221017183140762.png)
++ 用std::defer_lock作为参数
++ std::unique_lock的构造函数还可以有一个额外参数，那就是std::defer_lock
++ 指定了这个参数的话，std::unique_lock不会在构造函数中调用mtx.lock()，需要之后再手动调用grd.lock()才能上锁
++ 好处依然是即使忘记grd.unlock()也能够自动调用mtx.unlock()。
++ 用std::try_to_lock做参数，和无参数相比，会调用mtx.try_lock()而不是mtx.lock()。之后可以通过grd.owns_lock()判断是否上锁成功
++ ![image-20221017190722626](C++.assets/image-20221017190722626.png)
++ 用std::adopt_lock做参数，如果当前mutex已经上锁了，但是之后仍然希望用RAII思想在析构时自动调用unlock()，可以用std::adopt_lock作为std::unique_lock或std::lock_guard的第二个参数，这时他们会默认mtx已经上锁
++ ![image-20221017191252478](C++.assets/image-20221017191252478.png)
+
+**std::unique_lock和std::mutex具有同样的接口**
+
++ 其实std::unique_lock具有mutex的所有成员函数：lock()、unlock()、try_lock()、try_lock_for()等。除了他会在析构时自动调用unlock()。
++ 因为std::lock_guard无非是调用其构造参数名为lock()的成员函数，所以std::unique_lock也可以作为std::lock_guard的构造参数
+
+多个对象，每个对象一个mutex即可
+
+**如果上锁失败，不要等待：try_lock()**
+
++ lock()如果发现mutex已经上锁，会等到它解锁
++ 也可以用无阻塞的try_lock()，上锁失败时返回false，成功返回true
++ ![image-20221017185314934](C++.assets/image-20221017185314934.png)
++ 等待一段时间：try_lock_for()
++ 超过最长等待时间，返回false，如果上锁成功返回true
++ ![image-20221017190040456](C++.assets/image-20221017190040456.png)
+
+**死锁**
+
++ 保证双方上锁顺序一致
++ 用std::lock同时对多个上锁，接受任意多个mutex作为参数
++ std::lock的RAII版本：std::scoped_lock
++ 即使只有一个线程，在lock()之后又调用lock()，也会造成死锁
++ 可以用recursive_mutex。它会自动判断是不是同一个线程lock()了多次同一个锁，如果是则让计数器+1，之后unlock()会让计数器-1，减到0时才真正解锁，会有性能损失
++ ![image-20221017194255713](C++.assets/image-20221017194255713.png)
+
+**读写锁	**
+
++ std::shared_mutex
++ ![image-20221017200553130](C++.assets/image-20221017200553130.png)
++ 正如std::unique_lock针对lock()，也可以用std::shared_lock针对lock_shared()。这样就可以在函数体退出时自动调用unlock_shared()了
++ 同样支持defer_lock做参数，owns_lock()判断等
+
+**只需要一次上锁，且符合RAII思想：访问者模式**
+
+![image-20221017202534937](C++.assets/image-20221017202534937.png)
+
+![image-20221017202555811](C++.assets/image-20221017202555811.png)
+
+**条件变量**
+
++ cv.wait(lck)将会让当前线程陷入等待
++ 在其他线程中调用cv.notify_one()则会唤醒那个陷入等待的线程
++ 还可以额外指定一个参数，变成cv.wait(lck,expr)的形式，其中expr是个lambda表达式，返回值为假时才会阻塞线程，阻塞线程后，只有其返回值为true时才会真正唤醒，否则继续等待。
++ ![image-20221017203705904](C++.assets/image-20221017203705904.png)
++ cv.notify_all()会唤醒全部
++ 这就是为什么wait()需要一个unique_lock作为参数，因为要保证多个线程被唤醒，只有一个能够被启动。
++ ![image-20221017204725743](C++.assets/image-20221017204725743.png)
 
 ### **C/C++比较**
 
@@ -3580,6 +3848,8 @@ int main()
   2. 引用不可以改变值
   3. 引用不占空间
   4. 引用不能为空 
+
+
 
 ### **C和C++结构体的区别**
 
@@ -3619,9 +3889,7 @@ int main()
 
 ### 构造函数可以是虚函数吗？
 
-首先，虚函数的唯一存在的原因就是为了构成多态，但是派生类并不继承构造函数，构造函数是在创建对象时自己主动调用的，不可能通过子类的指针或者引用去调用继承。所以没必要（主要原因）。另一方面，构造函数为类对象初始化了内存空间，里面保存指向虚函数的指针vfptr，如果构造函数是虚函数，导致没有实例化类对象，也就没有内存空间，也就不可能有虚函数。
-
-从存储空间角度：虚函数对应一个vtale,这个表的地址是存储在对象的内存空间的。如果将构造函数设置为虚函数，就需要到vtable 中调用，可是对象还没有实例化，没有内存空间分配，如何调用。（悖论）
+虚函数相应一个指向vtable虚函数表的指针，但是这个指向vtable的指针事实上是存储在对象的内存空间的。假设构造函数是虚的，就须要通过 vtable来调用，但是对象还没有实例化，也就是内存空间还没有，怎么找vtable呢？所以构造函数不能是虚函数。
 
 **静态成员函数可以设置为virtual吗？为什么？**
 
@@ -3686,4 +3954,4 @@ typedef struct TEST{
 
 双重哈希寻址，顾名思义就是多次哈希直到找到一个不冲突的哈希值。
 
-**当更多的数插入时，哈希表冲突的可能性就更大。**对于冲突，哈希表通常有两种解决方案：第一种是线性探索，相当于在冲突的地方后建立一个单链表，这种情况下，插入和查找以及删除操作消耗的时间会达到O(n)，且该哈希表需要更多的空间进行储存。第二种方法是开放寻址，他不需要更多的空间，但是在最坏的情况下（例如所有输入数据都被map到了一个index上）的时间复杂度也会达到O(n)。
+**当更多的数插入时，哈希表冲突的可能性就更大。**对于冲突，哈希表通常有两种解决方案：第一种是线性探索，相当于在冲突的地方后建立一个单链表，这种情况下，插入和查找以及删除操作消耗的时间会达到O(n)，且该哈希表需要更多的空间进行储存。第二种方法是开放寻址，他不需要更多的空间，但是在最坏的情况下（例如所有输入数据都被map到了一个index上）的时间复杂度也会达到O(n)。	00
