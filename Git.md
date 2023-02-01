@@ -31,7 +31,7 @@ known_hosts不存在：git clone+SSH地址
 
 ssh -T git@github.com：测试是否连接成功
 
-git remote add origin 仓库地址：将远程仓库和本地仓库关联并起别名
+git remote add origin 仓库地址：将远程仓库和本地仓库关联并起别名（在git init之后）
 
 **仓库地址：**![image-20220911223909809](Git.assets/image-20220911223909809.png)
 
@@ -65,7 +65,7 @@ git branch -D name：强制删除分支，没有提示
 
 git checkout -b name：创建分支并切换
 
-git push origin master：本地仓库与云端仓库同步合并
+git push origin master：本地仓库与云端仓库同步合并（如果本地仓库是新的，第一次push需要先pull）
 
 git pull --rebase origin：拉取合并云端仓库，确保本地工作区是干净的，如果本地修改的内容没完全commit或者stash，就会rebase失败
 
