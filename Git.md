@@ -67,7 +67,9 @@ git checkout -b name：创建分支并切换
 
 git push origin master：本地仓库与云端仓库同步合并（如果本地仓库是新的，第一次push需要先pull）
 
-git pull --rebase origin：拉取合并云端仓库，确保本地工作区是干净的，如果本地修改的内容没完全commit或者stash，就会rebase失败
+git pull origin master
+
+git pull --rebase origin master：多人使用一个远程分支合作开发时，远程分支有新的commit未同步到本地，push出错，可以先pull再push，只不过会出现自动生成的merge commit，解决这个问题只需要再pull的时候加上--rebase。执行 git pull --rebase的时候必须保持本地目录干净。 即：不能存在状态为 `modified` 的文件。（存在`Untracked files`是没关系的）
 
 **不想提交某些文件到本地版本库和远程仓库时：**
 
