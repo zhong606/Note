@@ -1,12 +1,18 @@
 
 
-### VSCODE+CLANG+CLANGD+CMAKE
+# VSCODE+CLANG+CMAKE
 
 + 安装llvm+clang，在github上下载
 
-  ![image-20230115185229666](C++.assets/image-20230115185229666.png)
+  ![image-20230222143521301](C++.assets/image-20230222143521301.png)
 
 + 安装任意版本的vs，打开x64 Native Tools Command Prompt控制台，输入code打开vscode（不是必须，这样可以防止后续生成窗口程序，链接windows库的时候出现错误）
+
++ 安装CMake
+
++ 安装CMake、CMake Tools插件。
+
++ 安装ninja，将安装路径添加到path中。
 
 + 在vscode中ctrl+shift+p，打开CMake:Edit User-Local CMake Kits
 
@@ -18,9 +24,15 @@
 
   ![image-20230115185337505](C++.assets/image-20230115185337505.png)
 
-+ 终端输入ninja --version，查看是否安装上了ninja构建工具
++ 配置：根据CMakeLists.txt文件生成目标平台下的原生工程。
 
-+ ![image-20230115185356393](C++.assets/image-20230115185356393.png)
+  ![image-20230226160248835](C++.assets/image-20230226160248835.png)
+
+  ![image-20230226160306474](C++.assets/image-20230226160306474.png)
+
++ 构建
+
+  ![image-20230226160541376](C++.assets/image-20230226160541376.png)
 
   按F7，成功生成
 
@@ -29,7 +41,7 @@
 + 配置clangd
 
   ```
-  "clangd.arguments": [
+  																																																				"clangd.arguments": [
   "--background-index",
   "--compile-commands-dir=build",  //compile_command.json相对路径，cmake默认生成在build，自行配置
   "-j=12",
@@ -51,9 +63,67 @@
 
   ![image-20230115185423412](C++.assets/image-20230115185423412.png)
 
-#### 程序的生成过程
+## 编码
 
-+ **预处理（.c—.i）处理宏**
+**ASCII**
+
+​	ASCII将英文字母、数字、标点符号（共95个可见字符）和32个控制字符映射到0~127个字符之间。
+
+![image-20230217153221979](C++.assets/image-20230217153221979.png)
+
+​	字符数等于字节数
+
+![image-20230217153938839](C++.assets/image-20230217153938839.png)
+
+**GB2312、GBK、GB18030**
+
+​	当中文出现在计算机上时，需要用16表示一个字符。
+
+![image-20230219141844112](C++.assets/image-20230219141844112.png)
+
+![image-20230219142042517](C++.assets/image-20230219142042517.png)
+
++0XA0是为了区分ASCII
+
+![image-20230219145509724](C++.assets/image-20230219145509724.png)
+
+​	随着语言越来越多，需要的编码方式越来越多，为了统一，设计了unicode。
+
+**UNICODE**
+
+![image-20230218113450742](C++.assets/image-20230218113450742.png)
+
+​	unicode中不用字符（character），用字位（Grapheme，有意义的书写符号单位）。
+
+​	用字位来表示unicode，是用代码点组合成一个字位。我们有了代码点列表，各个都有对应的数字值。下一步就是如何将它们转成对应的二进制（编码）。
+
+![image-20230218115114948](C++.assets/image-20230218115114948.png)
+
+​	ASCII只有一种编码策略，获取ASCII值，将其转化为一字节的二进制数
+
+![image-20230218115615467](C++.assets/image-20230218115615467.png)
+
+​	unicode有几种编码策略
+
+​	**UTF-32**
+
+​		utf-32将每个代码点值转为四字节的二进制数，所以叫utf-32。
+
+![image-20230218120947585](C++.assets/image-20230218120947585.png)
+
+​		这种编码的优势是每个代码点有相同大小的字节。缺点是浪费。用UFT-32编码是ASCII编码所占空间的4倍
+
+![image-20230218121915761](C++.assets/image-20230218121915761.png)
+
+​	**UTF-8**
+
+​		utf-8将每个代码点映射到一到四字节之间。值较小的代码点映射到一字节，值较大占2到4字节。有些字母有相同的ASCII和utf-8编码。意味着老的ASCII程序可以读取简单的UTF-8字符。utf-8缺点是代码点尺寸和大小不等，这样通过索引定位就很难
+
+![image-20230218124014909](C++.assets/image-20230218124014909.png)
+
+## 程序的生成过程
+
++ **预处理（.c—.i）处理宏**（gcc -E main.cpp > main.i）
 
   + #ifndef #ifdef 条件预处理
   + #include 将头文件的内容复制到当前位置
@@ -62,9 +132,13 @@
   + 删除 /**/ // （注释）
   + 对于#pragma保留不做处理
 
-+ **编译（.i—.s）转换为汇编语言文件**
++ **编译（.i—.s）转换为汇编语言文件**（gcc -c main.cpp）
 
   对预处理后的文件，进行词法分析、语法分析、语义分析、代码优化、目标代码生成（汇编代码）
+
+  将cpp文件转换成一种称为目标文件的中间格式，这些obj(.o)（包含机器代码的文件，以及其他我们定义的常数数据）文件可以传递到链接
+
+  编译时的基本单位是源文件（因为头文件是以复制粘贴的方式，被粘贴到了源文件中再编译） 
 
 + **汇编（.s—.o）得到机器语言**
 
@@ -73,64 +147,65 @@
 + **链接**
 
   将机器码语言文件转换为.exe,装入到内存中
-
-#### **预处理**
-
-​	gcc -E main.cpp > main.i
-
-#### 编译
-
-​	gcc -c main.cpp
-
-​	将cpp文件转换成一种称为目标文件的中间格式，这些obj(.o)（包含机器代码的文件，以及其他我们定义的常数数据）文件可以传递到链接
-
-​	编译时的基本单位是源文件（因为头文件是以复制粘贴的方式，被粘贴到了源文件中再编译） 
-
-#### 链接
-
-​	找到符号和函数在哪里，并把它们连接起来。（程序要有入口点，不一定是main()，否则会发生链接错误）
-
-​	当前编译单元所调用到的函数它的实现不一定在当前编译单元中
+  
+  找到符号和函数在哪里，并把它们连接起来。（程序要有入口点，不一定是main()，否则会发生链接错误）
+  
+  当前编译单元所调用到的函数它的实现不一定在当前编译单元中
 
 
 
-#### 	头文件与源文件
+**程序内存分配：**
 
-头文件不参与编译，而每一个源文件自上而下独立编译
++ 代码区：存放程序的代码，即CPU执行的机器指令，一般只读。
 
-头文件：类型的声明、函数的声明、宏的定义、类定义
++ 静态区（全局区）：存放静态变量和全局变量。
 
-源文件：变量初始化、函数的实现
++ 常量区：存放常量(程序在运行的期间不能够被改变的量，例如: 10，字符串常量”abcde”， 数组的名字等)
 
-静态常量成员一定要在源文件中进行初始化。 
++ 堆区：由程序员调用malloc()函数来主动申请的，需使用free()函数来释放内存。
 
-常函数数在头文件中声明，在源文件中实现除了要加类名:: ，要保留const关键字。
++ 栈区：存放函数内的局部变量，形参和函数返回值。
 
-静态函数在头文件中声明，在源文件中实现除了要加类名:: ，要去掉static 关键字。
+## 	头文件与源文件
 
-虚函数数在头文件中声明，在源文件中实现除了要加类名:: ，要去掉virtual关键字。
+**头文件：**就是代码文件，与c/cpp文件无异，甚至可以用.txt文件来代替，只是这么做没有语法高亮。
+
+**作用：**告诉引用此头文件的源文件有什么方法或者变量可以使用（即前置声明的作用）。尽管头文件里可以定义变量（会产生占用空间的变量实体），但是这么做很容易出现链接错误。
+
+除了作前置声明使用，还可以向引用头文件的源文件提供自定义类型的内存布局（即结构体/类声明），这样可以使用点语法（点语法是以知道对象的内存布局为基础的，本质就是通过偏移量来访问），调用成员方法。
+
+由于作前置声明和提供点语法支持是两种不同的作用，所以头文件也可以以此来分为两类。
+
+1. **仅有前置声明**
+2. **含结构体/类声明**
 
 
 
-“ "这种形式的头文件优先搜索当前目录下有没有这个文件，找不到再搜索系统目录
++ 头文件不参与编译，而每一个源文件自上而下独立编译
 
-<>这中形式的头文件表示不要在当前目录下搜素，只在系统目录搜索
++ 头文件：类型的声明、函数的声明、宏的定义、类定义
 
-**<cstdio>可以理解为C++中的<stdio.h>,它会在变量及函数前加上std::**
++ 源文件：变量初始化、函数的实现
+
++ 常函数数在头文件中声明，在源文件中实现除了要加类名:: ，要保留const关键字。
+
++ 静态函数在头文件中声明，在源文件中实现除了要加类名:: ，要去掉static 关键字。
+
++ 虚函数数在头文件中声明，在源文件中实现除了要加类名:: ，要去掉virtual关键字。
+
++ “ "这种形式的头文件优先搜索当前目录下有没有这个文件，找不到再搜索系统目录。当前文件和“ ”处于同一工程且同一目录。
+
++ <>这中形式的头文件表示不要在当前目录下搜素，只在系统目录搜索。当前文件和<>不属于同一工程。
+
++ < cstdio > 可以理解为C++中的<stdio.h>，它会在变量及函数前加上std::
 
 **C++需要声明**
 
-![image-20220426124747052](C++.assets/image-20220426124747052.png)![image-20220426124904469](C++.assets/image-20220426124904469.png)
+![image-20230228163931108](C++.assets/image-20230228163943012.png)![image-20230228163955601](C++.assets/image-20230228163955601.png)
 
-让编译器知道hello是一个函数，不是一个变量或者类的名字，也需要知道函数的参数和返回值类型，这样才能支持重载，隐式类型转换等特性，在链接的时候找到hello的定义
+​	让编译器知道hello是一个函数，不是一个变量或者类的名字，也需要知道函数的参数和返回值类型，这样才能支持重载，隐式类型转换等特性，在链接的时候找到hello的定义
 
-**为什么需要头文件**
-
-​	里面存放函数的声明，这样当cpp文件需要使用函数时，只需要导入头文件即可。 
-
-
-
-#### extern
+## extern
 
 ​	表明变量或者函数是定义在其他文件中的
 
@@ -165,11 +240,44 @@
    #endif /* __cplusplus */
    ```
 
-   
 
-### C
 
-#### 反码 补码
+
+**前置声明**
+
+​	为了在不提供内存布局细节的前提下让源文件编译通过。为了只影响编译过程不影响链接过程，所以它实际不产生任何占用内存的对象
+
+**好处：**
+
+​	多数情况下能减少编译依赖，提升依赖速度。
+
++ 函数
+
+  ```c++
+  int func(int,int);
+  ```
+
++ 变量
+
+  ```c++
+  extern int a;	//前置声明一个变量，假设某个c/cpp object file有一个int类型的a变量，链接期可以找到
+  ```
+
++ 自定义类型
+
+  ```c++
+  struct type1;
+  class type2;
+  ```
+
+
+![image-20230429210913080](C++.assets/image-20230429210913080.png)
+
+![image-20230429210941328](C++.assets/image-20230429210941328.png)
+
+# C
+
+## 反码 补码
 
 **有符号整数、无符号整数**
 
@@ -195,7 +303,7 @@
 
 
 
-#### 类型位数
+## 类型位数
 
 ![image-20220530114353217](C++.assets/image-20220530114353217.png)
 
@@ -276,12 +384,14 @@ cmath和math.h的区别（其他头文件类似）：cmath会有std::，是C++�
 
 
 
-#### 字符串
+## 字符串
 
 ```c++
 int main()
 {
-    // char *str = "asdasdasd"         指向字符常量区的指针不能修改
+    // char *str = "asdasdasd"         
+    //*(str+1) = 'c';				 //指向字符常量区的指针不能修改
+    
     char *str = new char [10];
     //str = "asdasdasd";             //str由指向堆区变为指向字符常量区 
     strcpy_s(str,10,"aaaaaaaaa");
@@ -300,7 +410,7 @@ strcpy_S(str,10,"aaaaaaaaa");
 
 
 
-#### **strcpy memcpy区别**
+**strcpy memcpy区别**
 
 ```c++
 char *strcpy(char *_Destination, const char *_Source);		//仅用于字符串的复制
@@ -314,7 +424,9 @@ void *memcpy(void *_Dst, const void *_Src, size_t _Size);	//用于一般内存�
 
 
 
-#### namespace 
+
+
+**namespace** 
 
 ​	命名空间主要用于区分同一个作用域下的相同成员。
 
@@ -351,7 +463,60 @@ int main()
 
 
 
-#### new
+**define**
+
+**缺点：没有类型检查**
+
+```c++
+// \代表和下一行连接
+// 宏的参数也是替换
+// ##是连接符
+// #代表字符串
+
+#define A(ThisClass)\
+	ThisClass ps##ThisClass;\
+	ps##ThisClass.show();
+
+#define B(ThisClass) std::cout<<#ThisClass<<std::endl;
+int main()
+{
+	A(CPerson);
+	B(CPerson);
+	system("pause");
+}
+```
+
+```c
+#define mul(X,Y) X*Y
+printf("%d\n",mul(6+6,6+6));
+//输出48而不是144,说明只是简单的机械替换,应该把参数加上括号
+mul(X,Y) (X)*(Y);
+
+#define add(X,Y) (X)+(Y);
+printf("%d\n",10*add(6,6));
+//输出66而不是120,因该把整个宏定义加上括号
+add(X,Y) ((X)+(Y));
+```
+
+union
+
++ 成员变量是共享同一块内存的。找到联合体中最大的数据类型，还必须满足是所有数据成员的整数倍（字节对齐，每四个字节对齐）
+
+  ![image-20230307154742479](C++.assets/image-20230307154742479.png)
+
++ 修改一个成员的值会影响其他成员
+
+  ![image-20221001201938762](C++.assets/image-20230307154542933.png)
+
+
+
+
+
+
+
+# C++
+
+## new
 
 ​	动态分配内存（堆区）
 
@@ -382,14 +547,682 @@ int *p2 =new int[10](); //新建int类型数组并初始化，每个元素为0
 char *p3 =new char[10](); //新建char类型数组并初始化，每个元素为空字符'\0'
 ```
 
-#### **new malloc区别**
+**new malloc区别**
 
 1. new、delete是关键字，需要C++编译器的支持，malloc()、free()是函数，需要头文件支持
 2. new申请空间不需要指定申请大小，根据类型自动计算，new返回的是申请类型的地址，不需要强转，malloc()需要显示的指定申请空间大小（字节），返回void*，需要强转成我们需要的类型
 3. new申请空间的同时可以设置初始化，而malloc需要手动赋值
 4. new申请类、结构体对象内存空间会自动调用构造函数，delete会自动调用类、结构体的析构函数，单独的malloc()和free()则不会调用构造、析构函数。
 
-#### 函数
+## **inline**
+
+**C++98之前**
+
++ 宏在预编译阶段被替换，内联函数在编译阶段被替换
++ inline函数是给编译器的一个建议，而不是必须
++ 牺牲空间换取的时间，（提高函数调用的效率）
++ 函数体代码量少并且逻辑简单（没有for、while）递归等
+
+```c++
+inline int add(int a,int b)
+{
+    return a+b;
+}
+```
+
+
+
+**C++11之后**
+
+​	内联命名空间的名称是可选的。如果未指定名称，则使用外层命名空间的名称作为内联命名空间的名称
+
++ 内联命名空间中的所有声明都可以直接访问，而不需要使用命名空间限定符。
+
++ inline namespace可以将这个namespace内嵌在另一个namespace中，并使内部命名空间的成员可与直接被外层命名空间使用。可以把一个子命名空间内的函数和类型导出到父命名空间中
+
+  ![image-20230302150124606](C++.assets/image-20230302150124606.png)![image-20230302151749307](C++.assets/image-20230302151749307.png)
+
+  ![image-20230302222940684](C++.assets/image-20230302222940684.png)
+
++ inline修饰namespace时可以在库的版本控制上提供语言上的支持。
+
++ ![image-20230302000701650](C++.assets/image-20230302000701650.png)
+
+
+
++ 上述有些情况可以通过在namespace中嵌套using namespace来替代inline namespace，但在下列两中情况中只能用inline namespace。
+
+  ![image-20230303153319745](C++.assets/image-20230303153319745.png)![image-20230303153333184](C++.assets/image-20230303153333184.png)
+
++ ADL(Argument-Dependent Lookup)：扩展命名空间的查找范围，通过函数参数查找函数的命名空间。如果在函数的名称空间中定义了一种或多种参数类型，则不必为函数限定名称空间。
+
+  ![image-20230303172231745](C++.assets/image-20230303172231745.png)
+
+  ![image-20230303173008768](C++.assets/image-20230303173008768.png)
+
+  ```c++
+  std::swap(obj1,obj2);
+  //using std::swap;
+  //swap(obj1, obj2);
+  //如果存在命名空间A，并且存在A::obj1,A::obj2和A::swap()，则第二个示例将导致对A::swap()的调用，这可能不是用户想要的。
+  ```
+
+**C++17之后**
+
++ 程序中可以有多个内联函数或变量的定义 (C++17 起)，只要每个定义出现在不同的翻译单元中，并且所有定义都是相同的。例如，一个内联函数或一个内联变量 (C++17 起)可以在包含在多个源文件中的头文件中定义。
++ 所有函数定义中的函数局部静态对象在所有翻译单元之间共享（它们都引用一个翻译单元中定义的同一个对象）
++ func在符号表中的绑定类型是GLOBAL，是全局的，bar1.cpp和bar2.cpp中各有一个GLOBAL绑定类型，在链接时func有多个GLOBAL绑定类型。GLOBAL绑定类型全局只允许有一个，链接时会发生错误。
++ 在函数前面加上inline，func的绑定类型变为WEAK，n的绑定类型也变为WEAK。在链接时如果遇到多个WEAK，会随机选择一个，所以链接可以成功。
+
+![image-20230228164446399](C++.assets/image-20230228164446399.png)
+
+![image-20230228164524285](C++.assets/image-20230228164524285.png)![image-20230228164600633](C++.assets/image-20230228164600633.png)![image-20230228164655074](C++.assets/image-20230228164655074.png)
+
+![image-20230228164711375](C++.assets/image-20230228164711375.png)
+
+![image-20230228164751133](C++.assets/image-20230228164751133.png)
+
+
+
++ 在类或者结构体内的静态变量只能声明不能初始化，可以通过inline修饰变量解决。
+
+![image-20230228220152372](C++.assets/image-20230228220152372.png)
+
+![image-20230228220234249](C++.assets/image-20230228220234249.png)
+
+![image-20230228220305888](C++.assets/image-20230228220305888.png)
+
++ 成员函数函数通常是隐式inline函数。
+
++ 函数模板可以不用inline修饰，虽然函数模板的头文件通常会被多个编译单元包含，但是函数模板在符号表中绑定类型是WEAK，所以不会报错。
+
++ 如果你实现一个函数模板，而需要此模版实例化的所有函数都是inline的，那么将其声明成inline。但如果你将函数实现成模板，而此函数不需要inline，那么避免将模板声明成inline。 
+
++ Derived() 并不是inline函数（代码很复杂）。
+
+  ![image-20230303202705702](C++.assets/image-20230303202705702.png)
+
+  ![image-20230303202857192](C++.assets/image-20230303202857192.png)
+
+
+
+## **const**
+
++ **常量指针**（不能改变指针指向的内容）
+
+  ![image-20230313165837239](C++.assets/image-20230313165837239.png)
+
++ **指针常量**（不能改变指针本身）
+
+  ![image-20230313165844361](C++.assets/image-20230313165844361.png)
+
+
+
++ 既不能改变指针本身也不能改变指针指向的内容
+
+  ![image-20230313165826286](C++.assets/image-20230313165826286.png)
+
++ **常函数，不能修改类中的成员属性**
+
+  ![image-20230313165703448](C++.assets/image-20230313165703448.png)
+
++ **const方法中需要修改变量，用mutable来定义变量**
+
++ **常量对象只能调用const方法**
+
+  ![image-20230313165538971](C++.assets/image-20230313165538971.png)
+
+## static
+
++ **类内**
+
+  + 不依赖对象，类公用的，在类外初始化，不能在.h文件初始化（重定义）要在.cpp文件初始化，而不管创建了多少个该类的对象。所有这些对象的静态数据成员都共享这一块静态存储空间。	
+  + 修饰成员函数：没有this指针，可以不依赖对象调用，类公用的，不可以声明为虚函数，不能直接调用类中的非静态成员
+  + **在类中使用static的原因：**
+    1. 可以让所有类实例之间共享数据
+    2. static与类有关
+
++ **类外**
+
+  + 在类或结构体外部使用static，链接将只是在内部，只能在定义它的cpp文件可见
+
+  + static修饰类外变量：修饰全局，是全局静态变量(当前源文件)，生命周期到程序退出时结束，(存在静态区/全局区)
+
+    ​									修饰局部，是局部静态变量(只能在所在函数中使用)，生命周期到程序退出时结束，(存在静态区/全局区)
+
+  + static局部变量不初始化时，默认值为0；
+
+  + 普通局部变量不初始化时，默认值为随机值。
+
+  + static局部变量在编译阶段，函数还未执行的时候，就已经分配了变量空间。
+
+![image-20230313170506957](C++.assets/image-20230313170506957.png)
+
+**local static**
+
+```c++
+class Singlaton
+{
+private:
+	int m_num;
+	static Singlaton *s_Instance;
+public:
+	Singlaton()
+		:m_num(6) {}
+	static Singlaton& Get() { return *s_Instance; }
+	void Print() { std::cout << m_num << std::endl; }
+};
+
+Singlaton *Singlaton::s_Instance = new Singlaton;
+
+int main()
+{
+	Singlaton::Get().Print();
+	system("pause");
+	return 0;
+}
+
+/*--------------------------------------------------------*/
+
+class Singlaton
+{
+private:
+	int m_num;
+public:
+	Singlaton()
+		:m_num(6){}
+	static Singlaton& Get() {
+		static Singlaton instance;
+		return instance;
+	}
+	void Print() {std::cout << m_num << std::endl; }
+};
+int main()
+{
+	Singlaton::Get().Print();
+	system("pause");
+	return 0;
+}
+```
+
+
+
+**struct**
+
+**类和结构体的区别：**类默认的访问修饰符是private，结构体默认的访问修饰符是public
+
+**C和C++结构体的区别：**
+
+1. C的结构体内不允许有函数存在，C++允许有内部成员函数，且允许该函数是虚函数。
+2. C的结构体对内部成员变量的访问权限只能是public，而C++允许public,protected,private三种。
+3. C语言的结构体是不可以继承的，C++的结构体是可以从其他的结构体或者类继承过来的。
+4. C 中使用结构体需要加上 struct 关键字，或者对结构体使用 typedef 取别名，而 C++ 中可以省略 struct 关键字直接使用
+
+**结构体对齐**
+
+​	经过内存对齐后，CPU的内存访问速度大大提升，因为如果没有内存对齐的话，CPU在访问一个数据时可能会进行多次访问然后拼接在一起。 
+
++ 规则一.： 每个**成员变量**在其结构体内的**偏移量**都是**成员变量类型**的大小的倍数。
+
++ 规则二： 如果有**嵌套结构体**，那么内嵌结构体的第一个成员变量在外结构体中的**偏移量**，是内嵌结构体中那个数据类型大小**最大**的成员变量的倍数。
+
++ 规则三： **整个结构体**的大小要是这个结构体内数据类型大小**最大**的成员变量的**倍数**。如果有内嵌结构体，那么取内嵌结构体中数据类型大小最大的成员变量作为计算外结构体整体大小的依据。
+
+```c
+typedef struct TEST{
+	int na;
+    char cb;
+    char cc;
+    int nd;
+    char cf;
+    struct TT{
+        int ng;
+        long long llh;
+    }tt;
+    char ci;
+}test;
+```
+
+![image-20220914013257895](C++.assets/image-20220914013257895.png)
+
+
+
+**noexcept**
+
+```c++
+int f1(int x) throw();   		//no exceptions from f1:C++98 style	less optimizable
+int f2(int x) noexcept;  		//no exceptions from f2:C++11 sytle	most optimizable
+int f3(int x) noexcept(true);	//ditto
+int f4(int x);					//less optimizable
+//在为某个异常进行栈展开的时候，会依次调用当前作用域下每个局部对象的析构函数。如果是noexcept,就会优化掉这些代码
+```
+
+**对于一个函数而言：**
+
++ noexcept 说明符要么出现在该函数的所有声明语句和定义语句，要么一次也不出现。
++ 函数指针及该指针所指的函数必须具有一致的异常说明。
++ 在 typedef 或类型别名中则不能出现 noexcept。
++ 在成员函数中，noexcept 说明符需要跟在 const 及引用限定符之后，而在 final、override 或虚函数的 =0 之前。
++ 如果一个虚函数承诺了它不会抛出异常，则后续派生的虚函数也必须做出同样的承诺；与之相反，如果基类的虚函数允许抛出异常，则派生类的虚函数既可以抛出异常，也可以不允许抛出异常。
+
+```c++
+//如果noexcept作用于移动构造时,会对容器在移动元素时产生影响
+std::vector<Widget> vw;
+Widget w;
+vw.push_back(w);    //如果此时capacity==size,vw会扩充容量,把元素拷贝到新的内存上
+                    //拷贝过程可以调用拷贝构造,如果移动构造声明为noexcept,那么会调用移动构造
+                    //因为push_back()要保证强异常安全性,即如果插入元素时抛出异常,vector的元素不应该受到影响
+                    //如果直接调用移动构造,在移动元素的过程中抛出异常,元素会丢失
+```
+
+**noexcept是可以带条件的**
+
+```c++
+template<class T,std::size_t N>
+void swap(T (&a)[N],T(&b)[N]) noexcept(noexcept(swap(*a,*b)));
+
+template<class T1,class T2>
+struct pair{
+    //...
+    void swap(pair& p) noexcept(noexcept(swap(first,p.first)) && noexcept(swap(second,p.second)));
+    //...
+}
+```
+
+
+
+**c++11标准规定，类的析构函数都是noexcept的，除非显式指定noexcept(false)**
+
+
+
+**noexcept优点：**
+
+1. **显示指定noexcept的函数，编译器会进行优化**
+
+   在调用noexcept函数时不需要记录exception handler，所以编译器可以生成更高效的二进制代码（编译器是否优化不一定，但理论上noexcept给了编译器更过优化的机会）。另外编译器在编译一个`noexcept(false)`的函数时可能会生成很多冗余的代码，这些代码虽然只在出错的时候执行，但还是会对Instruction Cache造成影响，进而影响程序整体的性能。
+
+2. **容器操作针对`std::move`的优化**
+
+
+
+```c++
+//在一个noexcept函数中可以调用非noexcept函数
+void setup();
+void cleanup();
+void func() noexcept
+{
+    setup();
+    //...
+    cleanup();
+}
+```
+
+
+
+**使用建议：**
+
+1. 析构函数
+2. 构造函数（普通、复制、移动），赋值运算符重载函数
+3. 保证不会抛出异常的函数
+
+
+
+**constexpr**
+
+​	用来定义常量表达式，使指定的常量表达式获得在编译阶段计算出结果的能力，而不必等到程序运行阶段。
+
+常量表达式：有多个(>=1)常量组成的表达式。值不会变并且在编译过程就能够得到计算结果的表达式。数组长度就是一个常量表达式。
+
+
+
+**修饰变量**
+
+```c++
+int n;
+constexpr auto arrSize1 = n;   //error! n's value not know at compilation
+std::array<int,n> arr1;        //error! ditto
+constexpr auto arrSize2 = 10;
+std::array<int,arrSize2> arr2;
+//上面的constexpr也可以替换成const,这是因为arrSize2同时满足是const变量且使用常量表达式为其初始化这两个条件,因此编译器会认定arrSize2是一个常量表达式,但是const和constexpr并不相同
+
+const auto arrSize3 = n;    	//fine,arraySize is const copy of n
+std::array<int,arrSize3> arr3;  //error! arrSize's value not known at compilation
+
+```
+
+**修饰函数**
+
+该函数必须有返回值，即函数的返回值类型不能是 void。
+
+函数在使用之前，必须有对应的定义语句，函数的使用分为“声明”和“定义”两部分，普通的函数调用只需要提前写好该函数的声明部分即可（函数的定义部分可以放在调用位置之后甚至其它文件中），但常量表达式函数在使用前，必须要有该函数的定义。
+
+return 返回的表达式必须是常量表达式
+
+```c++
+constexpr int pow(int base,int exp) noexcept{
+    //...
+    return 0;
+}    
+constexpr auto numConds = 10;
+std::array<int,pow(1,numConds)> arr4;
+
+//C++11 constexpr函数中不能有for循环
+constexpr int pow(int base,int exp) noexcept{
+    return (exp == 0 ? 1 : base*pow(base,exp-1));
+}
+//C++14 可以有for循环
+```
+
+**修饰构造函数和成员函数**
+
+```c++
+class Point{
+private:
+    double x,y;
+public:
+    constexpr Point(double xVal,double yVal) noexcept
+        : x(xVal),y(yVal) {}
+    constexpr double xValue() const noexcept {return x;}
+    constexpr double yValue() const noexcept {return y;}
+    void setX(double newX) noexcept {x = newX;}
+    void setY(double newY) noexcept {y = newY;}
+    //c++11 constexpr修饰的函数默认是const修饰的函数,在C++14中没有该规则
+    //constexpr void setX(double newX) noexcept {x = newX;}
+    //constexpr void setY(double newY) noexcept {y = newY;}
+};
+constexpr
+Point midpoint(const Point& p1,const Point& p2) noexcept{
+    return {(p1.xValue()+p2.xValue())/2,(p2.yValue()+p2.yValue())/2};
+}
+constexpr Point reflection(const Point& p) noexcept
+{
+    Point result;
+    result.setX(-p.xValue());
+    result.setY(-p.yValue());
+    return result;
+}
+constexpr Point p1(20.01,6.6);  //fine,"runs" constexpr ctor during compilation
+constexpr Point p2(8.5,1.2);
+constexpr Point p3(8.0,7.8);
+constexpr auto mid = midpoint(p2,p3);
+constexpr auto rm = reflection(mid);	//during compilation
+```
+
+C++17 类的静态constexpr成员变量默认就是内联的，const常量和类外面的constexpr变量默认内联，需要用inline修饰。
+
+```c++
+struct Bar{
+    static const int number = 2001;
+};
+std::cout << Bar::number << std::endl;
+std::cout << &Bar::number << std::endl;
+```
+
+**枚举**
+
+**C++98的enum是非域内枚举**
+
+```c++
+enum Example : unsigned char
+{
+    A = 9,B = 17,C
+};
+int main()
+{
+    Example e = C;  
+    std::cout << (e == 18) << std::endl;
+    return 0;
+}
+```
+
+**C++11枚举的关键字为enum class**
+
+**优点：**
+
++ 防止命名空间污染：enum class将{ }内的变量限制在{ }作用域可见
+
+  ```c++
+  enum class color {red,blue,green};
+  auto red = false;
+  auto c = color::red;
+  ```
+
++ 强类型枚举：非域内的枚举成员，可隐式地转换为广义整型，域内枚举成员不能
+
+  ![image-20230318210659976](C++.assets/image-20230318210659976.png)
+
++ 支持前置声明：即不用初始化枚举成员，声明一个枚举类型
+
+  ```c++
+  enum class Color;　　
+  ```
+
+
+**enum在某些情况下，也有它自己的有点**
+
++ 假定用户的信息用元组来表示`{name,email,reputation value}`
+
+  ```c++
+  using UserInfo = std::tuple<std::string,std::string,std::size_t>;
+  //当在另一个源文件中使用上述代码，会忘记tuple中每一个变量的含义，所以会用enum来记录每个变量含义的顺序
+  //UserInfo uInfo;
+  //auto val = std::get<1>(uInfo);
+  enum UserInfoFields{uiName,uiEmail,uiReputation};
+  UserInfo uInfo;
+  auto val = std::get<uiEmail>(uInfo);
+  ```
+
++ 如果用enum class，需要类型转换
+
+  ```c++
+  enum class UserInfoFields{uiName,uiEmail,uiReputation};
+  UserInfo uInfo;
+  auto val = std::get<static_cast<std::size_t>(UserInfoFields::uiEmail)>(uInfo);
+  //可以用模板函数,将枚举成员UserInfoFields::uiEmail和std::size_t联系起来
+  template<typename E>
+  constexpr typename std::underlying_type<E>::type toUType(E enumerator) noexcept
+  {
+      return static_cast<typename std::underlying_type<E>::type>(enumerator);
+  }
+  auto val = std::get<toUType(UserInfoFields::uiEmail)>(uInfo);
+  ```
+
+  
+
+**引用**
+
+​	引用是C++语言的一个特殊的数据类型描述（给变量起别名）
+
+​	用于在程序的不同部分使用两个以上的变量名指向同一个地址，使得对其中人一个变量的操作实际上都是对同一个地址单元进行的
+
+**注意：**
+
+1. 对引用进行操作，实际上就是对被引用的变量进行操作
+2. 引用不是值，不占存储空间，声明引用时，目标的存储状态不会改变
+3. 引用一旦被初始化，就不能在重新引用其他空间
+
+**引用与指针的区别：**
+
+1. 引用定义就要初始化
+2. 引用初始化后就不能在重新引用其他的空间
+3. 引用不占存储空间
+4. 不能给引用赋NULL
+
+如果要修改函数传入的参数，堆区的变量用指针，栈区的变量用引用
+
+
+
+## 类
+
+**访问修饰符：**
+
++ public：在任何一个地方都可以见到
++ protected：本类和派生类中可以见到
++ private：只有本类可以见到
+
+**继承后父类成员在子类中的访问情况                      **
+
++ public：public->不变	protected->不变	private->不可访问
++ protected：public->protected    protected->不变    private->不可访问
++ private：public->private    protected->private    private->不可访问
++ 无论怎么继承，除了private在派生类不能访问，其余都可以用，继承的方式不同不影响派生类，影响派生类的对象的访问
+
+**构造函数：**
+
++ 创建对象的时候自动调用构造函数
+
++ 构造函数可以有多个，但是一个对象只能调用一个
++ 类中如果没有构造，会有一个默认的无参构造
+
+**析构函数：**
+
+​	对象的生命周期结束，自动调用析构函数，清理内存
+
++ 析构函数不允许有返回值
++ 析构函数不允许带参数
++ 一个类中只能由一个析构函数
+
++ 类中如果没有析构，会有一个默认的什么都不做的析构函数
+
+**空类中默认的函数**
+
+​	默认无参构造、析构、拷贝构造、operator=   
+
+​	拷贝构造、operator=这两个默认的都是浅拷贝
+
+**抽象类和接口类**
+
++ 含有纯虚函数的类就是抽象类
++ 所有函数都是纯虚函数的类就是接口类
+
+**C++阻止一个类被实例化：**
+
++ 抽象类
++ private构造函数
+
+**接口（纯虚函数）**
+
+​	在基类中定义没有实现的函数，然后强制子类去实现该函数
+
+​	创建一个类，只有未实现的方法组成，然后强制子类去实际实现它们，这就叫接口，接口中只包含未实现的方法，由于这个接口类实际上并不包含方法实现，所以并不能实例接口类
+
+```c++
+class Printable
+{
+public:
+	virtual std::string GetClassName() = 0;
+};
+class EntityBase : public Printable
+{
+public:
+	std::string GetClassName() override { return "EntityBase"; }
+};
+class Entity : public EntityBase
+{
+public:
+	std::string GetClassName() override { return "Entity"; }
+};
+void PrintClassName(Printable *obj)
+{
+	std::cout << obj->GetClassName() << std::endl;
+}
+int main()
+{
+	EntityBase *p1 = new EntityBase;
+	EntityBase *p2 = new Entity;
+	PrintClassName(p1);
+	PrintClassName(p2);
+	system("pause");
+	return 0;
+}
+```
+
+
+
+**类的大小**
+
++ 空类的大小为1B,用来占位
+
++ 类中的成员变量是在创建对象的时候存在，每个对象都有一份
+
++ 类中的成员函数是在编译的时候存在，只有一份，所有对象公用
+
++ 类的大小与构造函数、析构函数、静态成员变量、以及其他成员函数无关，与普通成员变量、虚函数（指向虚函数表的指针，vptr，4/8字节）、继承（子类加父类）有关，虚继承会有一个指向虚基类表的指针，4/8个字节。
+
+
+
+**this**
+
+​	每个非static的成员函数都有一个隐藏的指针，是当前这个类的，this，用来存储调用者对象的地址	
+
+```c++
+class Entity{
+private:
+    int m_x;
+    int m_y;
+public:
+    Entity(int m_x,int m_y){
+        Entity *const & e = this;
+        this->m_x = m_x;
+        this->m_y = m_y;
+    }
+    void GetThis(){
+        std::cout << this << std::endl;
+    }
+};
+
+int main()
+{
+    Entity e1(6,6);
+    Entity e2(3,3);
+    std::cout << &e1 << std::endl;
+    e1.GetThis(/*&e1*/);
+    std::cout << &e2 << std::endl;
+    e2.GetThis(/*&e2*/);
+    return 0;
+}
+```
+
+
+
+**对象的种类** 
+
+我们最常见的就是在函数内（包含参数）定义的栈区的**局部对象**和 使用关键字 new 在**堆区申请的对象**，局部对象在函数调用完毕或遇到}时生命周期结束，内存空间自动被系统回收，但new出来 对象直到执行delete操作时生命周期结束，内存才会被释放。
+
+ 还有一种经常遇见的**全局对象**，他的生命周期比较早，在程序运行时会先调用构造函数初始化全局 对象，然后再执行main函数，直到程序退出前，要回收全局对象内存，调用其析构。
+
+**静态全局对象** 他的声明周期与全局对象是一样，都是伴随着程序的运行开始，直到程序退出。如 果存在多个对象那么哪个对象写在前面先被定义，则先执行其构造，最后在退出时执行析构与构造 的顺序相反。局部对象亦是如此。 
+
+**静态全局对象**与全局对象的区别不在于生命周期，而是在于作用域。 静态全局对象作用于所属源文件里，不能作用到其它源文件文件里，即被static关键字修饰过的对 象具有文件作用域。这样即使两个不同的源文件都定义了相同名字的静态全局对象，它们也是不同 的变量。而全局对象则在所有源文件中共享。 
+
+**静态局部对象**是定义在某个函数中的对象，但它并不是程序已创建就被初始化，而是第一次执行该 函数定义对象时被初始化，以后再调用该函数并不会创建新的对象，此对象只会存在一份。如果函 数一直没有被执行，那么该静态局部对象也不会被初始化。 与静态全局对象对象相比，静态局部对象 创建的晚些，但都是在程序退出前被回收，这也就意味 着我们可以在函数外使用静态局部对象，前提是此对象已经被创建了。
+
+
+
+**类之间的关系**
+
+**横向**
+
+1. 组合：直接要求包含对象对被包含对象的拥有以及包含对象与被包含对象生命期的关系（人与器官的关系，在类内定义另一个类的对象）
+2. 依赖：某个对象的功能依赖于另外的某个对象，而被依赖的对象只是作为一种工具在使用，而并不持有对它的引用（人与电脑的关系，在方法中将另一个类的对象通过参数传入）
+3. 关联：某个对象会长期的持有另一个对象的引用，而二者的关联往往也是相互的。它们在生命期问题上没有任何约定。被关联的对象还可以再被别的对象关联。（人与朋友的关系，在类中定义另一个类的指针）
+4. 聚合：聚合是更强版本的关联，它暗示着一种所属关系以及生命期关系。被聚合的对象还可以在被别的对象关联。（家庭和人的关系）
+
+**纵向：继承（泛化）**
+
++ 继承的优点：提高了代码的复用性
+
++ 继承关系中，同名的成员要类名::区分
+
++ 继承关系中，执行父类的指定构造函数要在初始化列表中调用
+
+
+
+子类和父类如果由同名的成员，定义子类对象，默认使用的是子类成员，son.CSon::成员，如果想使用父类的成员，son.CFather::
+
+定义子类对象，在内存中不仅包含子类的成员，也包含父类的成员属性，内存空间首地址开始是父类成员属性，后面是子类的成员属性
+
+## 函数
 
 ​	函数是为了让代码不重复，频繁调用函数会让程序速度变慢（编译器会生成一个call指令，创建一个堆栈结构，跳到二进制文件的不同部分，执行函数指令，通过返回地址，回到函数调用前）
 
@@ -410,7 +1243,6 @@ void show(int a,int b,int c,int d)
 **函数重载**：在同一作用域，函数名相同，参数列表不同（参数的个数或者参数的类型）、返回值可以不同
 
 ```c++
-
 //void show(char *p) { printf("char *p\n"); }
 //void show(char p[]) { printf("char p[]"); }		//不是重载，参数都是地址
 
@@ -437,11 +1269,14 @@ int main()
 
 **函数重写（覆盖）**：父类与子类之间的虚函数，要求函数名参数列表（个数和类型），返回值都要相同
 
-**函数隐藏**：是指**派生类**的函数屏蔽了与其同名的基类函数，注意只要同名函数，不管参数列表是否相同，基类函数都会被隐藏。
+**函数隐藏**：是指派生类的函数屏蔽了与其同名的基类函数，注意只要同名函数，不管参数列表是否相同，基类函数都会被隐藏。
 
-**隐藏，指的是派生类类型的对象、指针、引用访问基类和派生类都有的同名函数时**
+隐藏，指的是派生类类型的对象、指针、引用访问基类和派生类都有的同名函数时
 
-**调用函数方法：**	1. 函数名()	2.函数指针调用
+**调用函数方法**
+
+1. 函数名()
+2. 函数指针调用
 
 ```c++
 void Print(const char *str)
@@ -505,122 +1340,13 @@ int main()
 }
 ```
 
-#### **inline**
-
-+ 宏在预编译阶段被替换，内联函数在编译阶段被替换
-+ inline函数是给编译器的一个建议，而不是必须
-+ 牺牲空间换取的时间，（提高函数调用的效率）
-+ 函数体代码量少并且逻辑简单（没有for、while）递归等
-
-```c++
-inline int add(int a,int b)
-{
-    return a+b;
-}
-```
-
-#### 引用
-
-​	引用是C++语言的一个特殊的数据类型描述（给变量起别名）
-
-​	用于在程序的不同部分使用两个以上的变量名指向同一个地址，使得对其中人一个变量的操作实际上都是对同一个地址单元进行的
-
-**注意：**
-
-1. 对引用进行操作，实际上就是对被引用的变量进行操作
-2. 引用不是值，不占存储空间，声明引用时，目标的存储状态不会改变
-3. 引用一旦被初始化，就不能在重新引用其他空间
-
-**引用与指针的区别：**
-
-1. 引用定义就要初始化
-2. 引用初始化后就不能在重新引用其他的空间
-3. 引用不占存储空间
-4. 不能给引用赋NULL
-
-如果要修改函数传入的参数，堆区的变量用指针，栈区的变量用引用
 
 
-
-### 类
-
-**访问修饰符：**
-
-+ public：在任何一个地方都可以见到
-+ protected：本类和派生类中可以见到
-+ private：只有本类可以见到
-
-**类和结构体的区别：**类默认的访问修饰符是private，结构体默认的访问修饰符是public
-
-
-
-**接口：**规定别人必须按照某个过程执行
-
-**如何规定别人必须按照你的规则执行？**
-
-1. 所有能完成这件事的方式屏蔽掉（private）
-2. 提供一个唯一可以完成这件事的接口（接口函数）
-
-
-
-**构造函数：**
-
-+ 创建对象的时候自动调用构造函数
-
-+ 构造函数可以有多个，但是一个对象只能调用一个
-+ 类中如果没有构造，会有一个默认的无参构造
-
-**析构函数：**
-
-​	对象的生命周期结束，自动调用析构函数，清理内存
-
-+ 析构函数不允许有返回值
-+ 析构函数不允许带参数
-+ 一个类中只能由一个析构函数
-
-+ 类中如果没有析构，会有一个默认的什么都不做的析构函数
-
-
-
-**类的大小**
-
-空类的大小为1B,用来占位
-
-类中的成员变量是在创建对象的时候存在，每个对象都有一份
-
-类中的成员函数是在编译的时候存在，只有一份，所有对象公用
-
-**类的大小与构造函数、析构函数、静态成员变量、以及其他成员函数无关，与普通成员变量、虚函数（指向虚函数表的指针，vptr，4/8字节）、继承（子类加父类）有关，虚继承会有一个指向虚基类表的指针，4/8个字节。**
-
-
-
-**this**
-
-​	每个非static的成员函数都有一个隐藏的指针，是当前这个类的，this，用来存储调用者对象的地址	
-
-![](C++.assets/image-20220220222727031.png)
-
-![image-20220221120804398](C++.assets/image-20220221120804398.png)
-
-**对象的种类** 
-
-我们最常见的就是在函数内（包含参数）定义的栈区的**局部对象**和 使用关键字 new 在**堆区申请的对象**，局部对象在函数调用完毕或遇到}时生命周期结束，内存空间自动被系统回收，但new出来 对象直到执行delete操作时生命周期结束，内存才会被释放。
-
- 还有一种经常遇见的**全局对象**，他的生命周期比较早，在程序运行时会先调用构造函数初始化全局 对象，然后再执行main函数，直到程序退出前，要回收全局对象内存，调用其析构。
-
-**静态全局对象** 他的声明周期与全局对象是一样，都是伴随着程序的运行开始，直到程序退出。如 果存在多个对象那么哪个对象写在前面先被定义，则先执行其构造，最后在退出时执行析构与构造 的顺序相反。局部对象亦是如此。 
-
-**静态全局对象**与全局对象的区别不在于生命周期，而是在于作用域。 静态全局对象作用于所属源文件里，不能作用到其它源文件文件里，即被static关键字修饰过的对 象具有文件作用域。这样即使两个不同的源文件都定义了相同名字的静态全局对象，它们也是不同 的变量。而全局对象则在所有源文件中共享。 
-
-**静态局部对象**是定义在某个函数中的对象，但它并不是程序已创建就被初始化，而是第一次执行该 函数定义对象时被初始化，以后再调用该函数并不会创建新的对象，此对象只会存在一份。如果函 数一直没有被执行，那么该静态局部对象也不会被初始化。 与静态全局对象对象相比，静态局部对象 创建的晚些，但都是在程序退出前被回收，这也就意味 着我们可以在函数外使用静态局部对象，前提是此对象已经被创建了。
-
-#### **初始化列表**
+**初始化列表**
 
 ​	初始化列表初始化内容：父类的构造（遗传自父亲的那份空间），成员（对象成员，const成员，成员初值）的构造或给初值
 
-在C++98中，支持了在类声明中使用等号“=”加初始值的方式，来初始化类中静态成员常量。这种声明方式我们也称之为“就地”声明。就地声明在代码编写时非常便利，不过C++98对类中就地声明的要求却非常高。如果静态成员不满足常量性，则不可以就地声明，而且即使常量的静态成员也只能是整型或者枚举型才能就地初始化。而非静态成员变量的初始化则必须在构造函数中进行。这非常不方便，所以在C++11中，标准允许非静态成员变量的初始化有多种形式。具体而言，除了初始化列表外，在C++11中，标准还允许使用**等号=** 或者 **花括号{}** 进行就地的非静态成员变量初始化。
-
-​	**const常量需要在初始化列表初始化** 
+**const常量需要在初始化列表初始化** 
 
 ```c++
 class Entity
@@ -640,57 +1366,27 @@ public:
 };
 ```
 
-​	**初始化列表执行顺序是变量定义顺序**
+**初始化列表执行顺序是变量定义顺序**
 
-![	](C++.assets/image-20220219201947662.png)
+![image-20230311154158378](C++.assets/image-20230311154158378.png)
 
-​	**一个类中包含另一个类的对象，这个类的初始化列表默认执行另一个类的无参构造，如果在构造函数中初始化对象，而不是在初始化列表初始化对象，会创建两次对象，造成性能浪费**
+**一个类中包含另一个类的对象，这个类的初始化列表默认执行另一个类的无参构造，如果在构造函数中初始化对象，而不是在初始化列表初始化对象，会创建两次对象，造成性能浪费**
 
-![](C++.assets/image-20220221123209898.png)
+![image-20230311170600252](C++.assets/image-20230311170600252.png)
 
-![image-20220221123356264](C++.assets/image-20220221123356264.png)
-
-#### **类之间的关系**
-
-**横向：**
-
-1. 组合：直接要求包含对象对被包含对象的拥有以及包含对象与被包含对象生命期的关系（人与器官的关系，在类内定义另一个类的对象）
-2. 依赖：某个对象的功能依赖于另外的某个对象，而被依赖的对象只是作为一种工具在使用，而并不持有对它的引用（人与电脑的关系，在方法中将另一个类的对象通过参数传入）
-3. 关联：某个对象会长期的持有另一个对象的引用，而二者的关联往往也是相互的。它们在生命期问题上没有任何约定。被关联的对象还可以再被别的对象关联。（人与朋友的关系，在类中定义另一个类的指针）
-4. 聚合：聚合是更强版本的关联，它暗示着一种所属关系以及生命期关系。被聚合的对象还可以在被别的对象关联。（家庭和人的关系）
-
-**纵向：**
-
-**继承（泛化）**
-
-​	继承的优点：提高了代码的复用性
-
-​	继承关系中，同名的成员要类名::区分
-
-​	继承关系中，执行父类的指定构造函数要在初始化列表中调用
-
-#### **继承后父类成员在子类中的访问情况                      **
-
-+ public继承	public->不变	protected->不变	private->不可访问
-+ protected继承    public->protected    protected->不变    private->不可访问
-+ private继承    public->private    protected->private    private->不可访问
-+ 无论怎么继承，除了private在派生类不能访问，其余都可以用，继承的方式不同不影响派生类，影响派生类的对象的访问
+![image-20230312152850829](C++.assets/image-20230312152850829.png)
 
 
 
 
-
-子类和父类如果由同名的成员，定义子类对象，默认使用的是子类成员，son.CSon::成员，如果想使用父类的成员，son.CFather::
-
-定义子类对象，在内存中不仅包含子类的成员，也包含父类的成员属性，内存空间首地址开始是父类成员属性，后面是子类的成员属性
 
 **定义子类对象，父类的成员在父类的构造中被初始化，先执行父类的构造（子类构造函数的初始化列表），再执行子类的构造，先执行子类的析构，在执行父类的析构**
 
-**将父类中的析构函数置为虚函数，这样就先执行子类的虚函数，发现子类中有父类的成员（继承），然后在执行父类的析构函数**
-
-在继承关系下，子类和父类中有同名的成员，他们之间的关系为隐藏
+**将父类中的析构函数置为虚函数，这样就先执行子类的析构函数，发现子类中有父类的成员（继承），然后在执行父类的析构函数**
 
 
+
+## 虚函数
 
 **父类的指针可以指向任意一个子类的对象**
 
@@ -758,13 +1454,55 @@ int main()
 }
 ```
 
-#### **虚函数**
 
-​	通过父类的指针调用实际的子类的成员函数，虚函数的作用主要是为了实现多态的机制。
+
+通过父类的指针调用实际的子类的成员函数，**虚函数的作用**主要是为了实现多态的机制。
 
 **虚函数与普通函数的区别：**普通函数可以直接找到函数的地址来进行调用，虚函数需要通过虚指针和和虚函数列表来找到虚函数地址进行调用 （空指针可以直接调用普通函数而不能调用虚函数）  
 
-#### **多态**
+
+
+**虚析构**
+
+​	通过父类的指针完整删除一个子类的对象
+
+```c++
+class EntityBase
+{
+public:
+	EntityBase()
+	{
+		std::cout << "EntityBase" << std::endl;
+	}
+	virtual ~EntityBase()
+	{
+		std::cout << "~EntityBase" << std::endl;
+	}
+};
+class Entity : public EntityBase
+{
+public:
+	Entity()
+	{
+		std::cout << "Entity" << std::endl;
+	}
+	~Entity()
+	{
+		std::cout << "~Entity" << std::endl;
+	}
+};
+int main()
+{
+	{
+		EntityBase *p = new Entity;
+		delete p;
+	}
+	system("pause");
+	return 0;
+}
+```
+
+## **多态**
 
 ​	用父类型的指针指向其子类的实例，然后通过父类的指针调用实际子类的成员函数。这种技术可以让父类的指针有“多种形态”，这是一种泛型技术。
 
@@ -775,6 +1513,18 @@ int main()
 + 父类中存在虚函数，子类重写了虚函数
 
 重写：子类中存在和父类一摸一样的虚函数
+
+**多态的优缺点：**
+
++ 优点：调高复用性和扩展性
++ 缺点：空间（虚指针，虚表）、效率（调用）、安全性（私有函数不能定义为虚函数，在类外可以调用）
+
+**虚函数实现多态原理**
+
+1. 函数指针
+2. 需要维护一个由函数指针组成的虚函数列表（vtable），还需要记录使用那个列表的指针（vfptr）
+3. 当调用一个虚函数，通过vfptr找到对应的vtable，调用表里的函数指针，如果在子类中重写了，表中装的就是子类的函数（覆盖），调用的也就是子类
+4. vtable每个类包含一个编译期存在，vfptr是在创建对象的时候存在，每个对象有一个，在构造函数里初始化，指向对应的虚函数列表
 
 **动态多态的具体实现过程：**
 
@@ -873,7 +1623,7 @@ int main()
 	PFUN pfn1 = (PFUN)*((int*)*(int*)p+0);//函数指针不能偏移
 	PFUN pfn2 = (PFUN)*((int*)*(int*)p+1);
 	PFUN pfn3 = (PFUN)*((int*)*(int*)p+2);
-	PFUN pfn4 = (PFUN)*((int*)*(int*)p+3);//第一次强转(int*)是取对象前四个字节的内容也就是vfptr，第二次强转是取函数指针数组的前四个字节的内容
+	PFUN pfn4 = (PFUN)*((int*)*(int*)p+3);//第一次强转(int*)是取对象前四个字节的内容也就是vfptr，第二次强转是取函数指针											   数组的前四个字节的内容
 	(*pfn1)();
 	system("pause");
 	return 0;
@@ -882,7 +1632,9 @@ int main()
 
 ![image-20220222220953320](C++.assets/image-20220222220953320.png)
 
-#### 虚继承
+
+
+**虚继承**
 
 ​		虚继承是解决C++多重继承问题的一种手段，从不同途径继承来的同一基类，会在子类中存在多份拷贝。这将存在两个问题：其一，浪费存储空间；第二，存在二义性
 
@@ -931,7 +1683,7 @@ public:
 
 ![image-20221101135841864](C++.assets/image-20221101135841864.png)![image-20221101140044179](C++.assets/image-20221101140044179.png)
 
-在这个实现中，`Leaf`实例持有两个`Base`类的拷贝：第一个来自于`One`，第二个来自于`Two`。这样的实现使得下面语句：
+在这个实现中，Leaf实例持有两个`Base`类的拷贝：第一个来自于`One`，第二个来自于`Two`。这样的实现使得下面语句：
 
 ```c++
 Leaf lf;
@@ -994,316 +1746,18 @@ public:
 
 这个解决方案建立在虚继承的基础之上。如果移除继承声明`class Final : public `**virtual**` Seal`中的`virtual`关键字，`Derived`类就可以通过`Final`类间接调用`Seal`的构造函数（因为后者是`Seal`的友元），这个魔法就消失了。
 
-+ 在构造函数中调用虚函数
+**类型转换函数特征：**
 
-#### **抽象类和接口类**
+1. 类型转换函数定义在源文件中
+2. 须由operator修饰，函数名称是目标类型名或目标类名
+3. 函数没有参数，没有返回值，但是有return语句，return目标类型数据或调用目标类的构造函数
 
-+ 含有纯虚函数的类就是抽象类
-+ 所有函数都是纯虚函数的类就是接口类
+**类型转换函数主要有两类：**
 
-C++阻止一个类被实例化：
++ 对象向基本数据类型转换
++ 对象向不同类的对象的转换
 
-+ 抽象类
-+ private构造函数
-
-**接口（纯虚函数）**
-
-​	在基类中定义没有实现的函数，然后强制子类去实现该函数
-
-​	创建一个类，只有未实现的方法组成，然后强制子类去实际实现它们，这就叫接口，接口中只包含未实现的方法，由于这个接口类实际上并不包含方法实现，所以并不能实例接口类
-
-```c++
-class Printable
-{
-public:
-	virtual std::string GetClassName() = 0;
-};
-class EntityBase : public Printable
-{
-public:
-	std::string GetClassName() override { return "EntityBase"; }
-};
-class Entity : public EntityBase
-{
-public:
-	std::string GetClassName() override { return "Entity"; }
-};
-void PrintClassName(Printable *obj)
-{
-	std::cout << obj->GetClassName() << std::endl;
-}
-int main()
-{
-	EntityBase *p1 = new EntityBase;
-	EntityBase *p2 = new Entity;
-	PrintClassName(p1);
-	PrintClassName(p2);
-	system("pause");
-	return 0;
-}
-```
-
-#### **虚析构**
-
-​	通过父类的指针完整删除一个子类的对象
-
-```c++
-class EntityBase
-{
-public:
-	EntityBase()
-	{
-		std::cout << "EntityBase" << std::endl;
-	}
-	virtual ~EntityBase()
-	{
-		std::cout << "~EntityBase" << std::endl;
-	}
-};
-class Entity : public EntityBase
-{
-public:
-	Entity()
-	{
-		std::cout << "Entity" << std::endl;
-	}
-	~Entity()
-	{
-		std::cout << "~Entity" << std::endl;
-	}
-};
-int main()
-{
-	{
-		EntityBase *p = new Entity;
-		delete p;
-	}
-	system("pause");
-	return 0;
-}
-```
-
- **多态是基于虚函数实现的，虚函数要基于重写才可以**
-
-#### **虚函数实现多态原理**
-
-1. 函数指针
-2. 需要维护一个由函数指针组成的虚函数列表（vtable），还需要记录使用那个列表的指针（vfptr）
-3. 当调用一个虚函数，通过vfptr找到对应的vtable，调用表里的函数指针，如果在子类中重写了，表中装的就是子类的函数（覆盖），调用的也就是子类
-4. vtable每个类包含一个编译期存在，vfptr是在创建对象的时候存在，每个对象有一个，在构造函数里初始化，指向对应的虚函数列表
-
-**多态的优缺点：**
-
-+ 优点：调高复用性和扩展性
-+ 缺点：空间（虚指针，虚表）、效率（调用）、安全性（私有函数不能定义为虚函数，在类外可以调用）
-
-**C++面向对象**
-
-​	把有关系的数据和算法封装到类中，类是抽象的，实际存在的是对象。
-
-**封装、继承、多态**
-
-
-
-#### **const**
-
-+ 不能改变指针指向的内容（常量指针）
-
-![](C++.assets/image-20220219213401498.png)![image-20220219213211262](C++.assets/image-20220219213211262.png)
-
-
-
-+ 不能改变指针本身（指针常量）
-
-![image-20220219213102843](C++.assets/image-20220219213102843.png)
-
-
-
-+ 既不能改变指针本身也不能改变指针指向的内容（常函数常量）
-
-![image-20220219213721469](C++.assets/image-20220219213721469.png)
-
-
-
-**常函数，不能修改类中的成员属性**
-
-![](C++.assets/image-20220220104659694.png)
-
-![image-20220219214616362](C++.assets/image-20220219214616362.png)
-
-
-
-**const方法中需要修改变量，用mutable来定义变量**
-
-```c++
-class Entity
-{
-private:
-	int m_X;
-	mutable int m_Y;
-
-public:
-	int GetX() const
-	{
-		m_Y = 6;
-		return m_X;
-	}
-	int GetX()
-	{
-		return m_X;
-	}
-};
-void PrintEntity(const Entity& e)			//不能修改e中的成员属性
- {
-	std::cout << e.GetX() << std::endl;		//使用GetX的const版本
-}
-```
-
-
-
-**常量对象只能调用const方法**
-
-![](C++.assets/image-20220220105850269.png)
-
-
-
-#### static
-
-+ **类内**
-  + 不依赖对象，类公用的，在类外初始化，不能在.h文件初始化（重定义）要在.cpp文件初始化，而不管创建了多少个该类的对象。所有这些对象的静态数据成员都共享这一块静态存储空间。	
-  + 修饰成员函数：没有this指针，可以不依赖对象调用，类公用的，不可以声明为虚函数，不能直接调用类中的非静态成员
-  + **在类中使用static的原因：**
-    1. 可以让所有类实例之间共享数据
-    2. static与类有关
-
-+ **类外**
-
-  + 在类或结构体外部使用static，链接将只是在内部，只能在定义它的cpp文件可见
-
-  + static修饰类外变量：修饰全局，是全局静态变量(当前源文件)，生命周期到程序退出时结束，(存在静态区/全局区)
-
-    ​									修饰局部，是局部静态变量(只能在所在函数中使用)，生命周期到程序退出时结束，(存在静态区/全局区)
-
-  + static局部变量不初始化时，默认值为0；
-
-  + 普通局部变量不初始化时，默认值为随机值。
-
-  + static局部变量在编译阶段，函数还未执行的时候，就已经分配了变量空间。
-
-![image-20220221130412115](C++.assets/image-20220221130412115.png)
-
-**local static**
-
-```c++
-class Singlaton
-{
-private:
-	int m_num;
-	static Singlaton *s_Instance;
-public:
-	Singlaton()
-		:m_num(6) {}
-	static Singlaton& Get() { return *s_Instance; }
-	void Print() { std::cout << m_num << std::endl; }
-};
-
-Singlaton *Singlaton::s_Instance = new Singlaton;
-
-int main()
-{
-	Singlaton::Get().Print();
-	system("pause");
-	return 0;
-}
-
-/*--------------------------------------------------------*/
-
-class Singlaton
-{
-private:
-	int m_num;
-public:
-	Singlaton()
-		:m_num(6){}
-	static Singlaton& Get() {
-		static Singlaton instance;
-		return instance;
-	}
-	void Print() {std::cout << m_num << std::endl; }
-};
-int main()
-{
-	Singlaton::Get().Print();
-	system("pause");
-	return 0;
-}
-```
-
-​	
-
-#### 枚举
-
-```c++
-enum Example : unsigned char
-{
-    A = 9,B = 17,C
-};
-int main()
-{
-    Example e = C;  
-    std::cout << (e == 18) << std::endl;
-    return 0;
-}
-```
-
-#### define
-
-**缺点：没有类型检查**
-
-```c++
-// \代表和下一行连接
-// 宏的参数也是替换
-// ##是连接符
-// #代表字符串
-
-#define A(ThisClass)\
-	ThisClass ps##ThisClass;\
-	ps##ThisClass.show();
-
-#define B(ThisClass) std::cout<<#ThisClass<<std::endl;
-int main()
-{
-	A(CPerson);
-	B(CPerson);
-	system("pause");
-}
-```
-
-```c
-#define mul(X,Y) X*Y
-printf("%d\n",mul(6+6,6+6));
-//输出48而不是144,说明只是简单的机械替换,应该把参数加上括号
-mul(X,Y) (X)*(Y);
-
-#define add(X,Y) (X)+(Y);
-printf("%d\n",10*add(6,6));
-//输出66而不是120,因该把整个宏定义加上括号
-add(X,Y) ((X)+(Y));
-```
-
-
-
-#### union
-
-​	成员变量是共享同一块内存的。找到联合体中最大的数据类型，还必须满足是所有数据成员的整数倍（字节对齐，每四个字节对齐）
-
-![image-20221001195040056](C++.assets/image-20221001195040056.png)![image-20221001195307248](C++.assets/image-20221001195307248.png)
-
-+ 修改一个成员的值会影响其他成员
-
-  ![image-20221001201858746](C++.assets/image-20221001201858746.png)![image-20221001201938762](C++.assets/image-20221001201938762.png)
-
-#### 重载操作符
+## 重载操作符
 
 ​	必须要对象参数，而且需要返回值，这个返回值急需的和其他符号结合
 
@@ -1320,9 +1774,7 @@ int CPerson::operator=(int num)
 CPerson ps;
 ps = 100;
 std::cout<<ps.m_Age<<std::endl;
-```
 
-```c++
 int  CPerson::operator+(CPerson &ps)	
 {
 	return m_Age+ps.m_Age;
@@ -1341,7 +1793,7 @@ CPerson &operator=(const CPerson &ps)	//类默认的operator= 浅拷贝
 ```
 
 ```c++
-CPerson &operator=(const CPerson &ps)	operator=深拷贝
+CPerson &operator=(const CPerson &ps)	//operator= 深拷贝
 {
 	//删除原有的空间
 	delete this->m_Age;
@@ -1350,8 +1802,6 @@ CPerson &operator=(const CPerson &ps)	operator=深拷贝
 	return *this;
 }
 ```
-
-
 
 2. 类外重载，对象要在符号的右边（双目运算符）
 
@@ -1393,9 +1843,11 @@ int CPerson::operator++()		//左加加
 }
 ```
 
-迭代器是通过类和重载操作符实现的
+![image-20230316122731128](C++.assets/image-20230316122731128.png)
 
-#### 拷贝构造函数
+![image-20230316132201583](C++.assets/image-20230316132201583.png)
+
+## 拷贝构造函数
 
 ​	构造函数的参数是当前这个类的一个const类型的引用，默认是浅拷贝（复制一个对象，把类中的成员变量复制一份，如果成员变量中有指针，会使两个指针指向同一块空间，对象生命周期结束时会调用两次析构函数，释放两次，引发错误），避免浅拷贝的方法是参数为指针或者引用，或者深拷贝。
 
@@ -1430,10 +1882,7 @@ int main()
 ```
 
 ```c++
-void QQ(CPerson ps1)	//CPerson ps1相当于CPerson ps1(ps)改成CPerson &ps1可以避免浅拷贝
-{
-	
-}
+void QQ(CPerson ps1){}	//CPerson ps1相当于CPerson ps1(ps)改成CPerson &ps1可以避免浅拷贝
 CPerson ps;
 QQ(ps);
 ```
@@ -1446,103 +1895,21 @@ QQ(ps);
 3. 函数参数传递时，将实参传递给形参
 3. 函数返回一个对象时
 
-#### 转换构造函数
 
-```c++
-#include<iostream>
-class Entity
-{
-public:
-	int m_a;
-	int m_b;
-	char m_c;
-public:
-	//Entity(int a)			 //转换构造函数，隐式类型转换
-	//{
-	//	m_a = a;
-	//}
-	//Entity(int a, int b = 7) //转换构造函数，隐式类型转换
-	//{
-	//	m_a = a;
-	//	m_b = b;
-	//}
-	//explicit Entity(int a, int b = 7)	//explicit	禁止隐式类型转换
-	//{
-	//	m_a = 6;
-	//}
 
-};
-int main()
-{
-	/*Entity e = 6;*/
-	/*Entity e(6);*/
-	Entity e = { 6,7,'c' };
-	std::cout << e.m_a <<" " << e.m_b << " " << e.m_c << std::endl;
-	return 0;
-}
-```
+**隐式转换**
 
-#### **空类中默认的函数**
+![image-20230317003336241](C++.assets/image-20230317003336241.png)
 
-​	默认无参构造、析构、拷贝构造、operator=   
-
-​	拷贝构造、operator=这两个默认的都是浅拷贝
-
-#### 变参模板
-
-可以让函数或者类的方法有接受任意个参数的能力
-
-**typename...：**修饰变参模板的模板参数
-
-**Args...：**告诉编译器函数的参数是可变的
-
-```c++
-#include<iostream>
-
-void myprint() {}
-
-template<typename T,typename... Args>
-void myprint(T firstArg, Args... args) {
-	std::cout << firstArg << std::endl;
-	myprint(args...);
-}
-
-int main()
-{
-	myprint(2001, 6, 6, "zh");
-	return 0;
-}
-```
-
-**Args、args 解包(pack expansion)：**第一次调用myprint时，第一个参数firstArg被推导成了int型的，Args...被推导成了int型的E1、int型的E2、const char *型的E3.剩下的情况一样，直到最后myprint()的参数为空，函数结束，这也就是为什么在上面定义了myprint()的原因
+![image-20230317141847808](C++.assets/image-20230317141847808.png)
 
 
 
-**sizeof...**
+## 函数模板
 
-​	帮助我们在编译的时候就知道函数被调用时到底传了几个参数
+​	模板函数并不算是一个真正的函数，可以把它看作是一个函数生成器。一个模板并不会被自发地编译成object文件中的机器码，只有当模板被调用时编译器才会对它展开、实例化，被编译成机器码。
 
-```c++
-template<typename... Args>
-void func(Args... args) {
-	std::cout << "sizeof...(Args)" << sizeof...(Args) << std::endl;
-	std::cout << "sizeof...(args)" << sizeof...(args) << std::endl;
-	std::cout << "---------------" << std::endl;
-}
-int main()
-{
-    func(2001,6,6,"zh");
-    func(2001, 6, 6);
-	func(2001, 6);
-	func(2001);
-	func();
-	return 0;
-}
-```
-
-
-
-#### 函数模板
+![image-20230317204400823](C++.assets/image-20230317204400823.png)
 
 **template：**定义模板的关键字
 
@@ -1550,7 +1917,7 @@ int main()
 
 **<>：**模板的参数列表 
 
-如果函数的声明和定义分开，那么在声明和定义处都需要加上模板，如果模板存在默认值，那么只 在函数声明时指定即可。
+如果函数的声明和定义分开，那么在声明和定义处都需要加上模板，如果模板存在默认值，那么只在函数声明时指定即可。
 
 **注意事项：**如果函数的声明和定义分开，因为源文件是单独编译的，如果模板函数定义所在的源文件中并没有使用模板函数，那么模板函数就不会被实例化，在主函数就会找不到模板函数的定义。
 
@@ -1571,7 +1938,7 @@ X add(Y y, Z z) {
 	std::cout << typeid(x).name() << std::endl;
 	return y + z;
 }
-//优先级：手动显示指定 > 通过实参自动推导 > 模板类型默认值
+
 int main()
 {
 	int a = 1;
@@ -1587,7 +1954,7 @@ int main()
 
 ​	编译器能够自动推导出来的模板参数放于最后，有默认值的模板参数放于中间，无默认值则放于前面。（不是必须，只是可以减少显示地指定）
 
-**显示实例化：**由编程者决定生成指定模板类型 的函数，不管其是否被使用到。（即使不调用模板，也可以生成实例化的函数）
+**显示实例化：**由编程者决定生成指定模板类型的函数，不管其是否被使用到。（即使不调用模板，也可以生成实例化的函数）
 
 ```c++
 template <typename T>
@@ -1599,13 +1966,15 @@ T a(T t1, T t2)
 template int a(int, int);
 ```
 
-**static_assert：**C++11新语法，在编译时做必要的检查，如果检查不通过，直接打断编译，并且给出错误信息
+​	模板函数具有一定的局限性，同一功能并不是所有类型的操作都是一致的，比如 int类型 和 struct 类型的swap功能。所以有时需要为特定的类型指定特定的操作，而不是千篇一律使用通用的模板函数，此时可以**显式具体化**。
 
-​	模板函数具有一定的局限性，同一功能并不是所有类型的操作都是一致的，比如 int类型 和 struct 类型的swap功能。所以有时需要为特定的类型指定特定的操作，而不是千篇一律使用通用的模板 函数，此时可以 显式具体化。
+**显示具体化（显示专用化、特化）：**与显式实例化不同，告诉编译器不要使用模板函数来生成对应模板类型的函数定义， 而使用模板类型重新生成新的函数定义，所以显式具体化一定要有函数的定义，在函数前加上 template<>，其必须依赖于模板函数才能成立。
 
-**显示具体化（显示专用化、特例）：**与显式实例化不同，告诉编译器不要使用模板函数来生成对应模板类型的函数定义， 而使用模板类型重新生成新的函数定义，所以显式具体化一定要有函数的定义，在函数前加上 template<>，其必须依赖于模板函数才能成立。
+​	编译器在实例化模板的过程中，会优先选择特化的模板
 
-虚函数依赖的是运行时刷新虚表，查询虚表，才能达到多态的效果，模板特化在编译时就完成了分支的选择，不占用运行时的资源，所以它的性能更优
+​	使用函数重载可以实现函数模板特化的功能。如果使用重载函数，不管是否发生实际的函数调用，都会在目标文件中生成该函数的二进制代码，如果使用模板特化，除非发生函数调用，否则不会在目标文件中包含特化的模板函数的二进制代码。如果使用普通重载函数，那么在分离编译模式下，需要在各个源文件中包含重载函数的申明，否则在某些源文件中就会使用模板函数，而不是重载函数。
+
+​	虚函数依赖的是运行时刷新虚表，查询虚表，才能达到多态的效果，模板特化在编译时就完成了分支的选择，不占用运行时的资源，所以它的性能更优
 
 **全特化：**<>中没有任何模板参数，表示所有的模板参数都被特别指定了。
 
@@ -1625,19 +1994,25 @@ template<> double MYMAX(double a, double b)		//显示具体化，针对某一具
 {
 	return a > b ? b : a;
 }
+template <>
+const char* MYMAX(const char* a,const char* b){
+	if(strlen(a) > strlen(b))	return a;
+	return b;
+}
 int main()
 {
-	printf("%d\n", MYMAX(6, 7));
+	printf("%d\n", MYMAX(6, 7));    
 	printf("%lf\n", MYMAX(1.2, 3.4));
-	//printf("%s\n", MYMAX("zh", "zhong"));		//比较内存地址
+	printf("%s\n", MYMAX("zh", "zhong"));		//比较内存地址
 	return 0;
 }
-
 ```
+
+**static_assert：**C++11新语法，在编译时做必要的检查，如果检查不通过，直接打断编译，并且给出错误信息
 
 **同类型的显示专用化模板函数和全局函数可以同时存在**
 
-**同类型的显示实例化模板函数和显示专用化模板函数不能同是存在**
+**同类型的显示实例化模板函数和显示专用化模板函数不能同时存在**
 
 **优先级：**全局函数>显示专用化>普通模板函数
 
@@ -1670,55 +2045,7 @@ int main()
 
 
 
-```c++
-#include<iostream>
-
-bool rule1(int x,int y)
-{
-    return x>y;
-}
-bool rule2(double x,double y)
-{
-    return x<y;
-}
-template <typename BS>  //定义一个函数模板，BS是一个模板类型
-void BubbleSort(BS *arr,int nlen,bool (*pfun)(BS,BS))	//模板函数
-{
-    if(arr == NULL || nlen <= 0)    return;
-    int i,j,flag;
-    BS temp;
-    for(i=0;i<nlen-1;i++){
-        for(j=0;j<nlen-1-i;j++){
-            if(pfun(arr[j],arr[j+1])){
-                temp = arr[j];
-                arr[j] = arr[j+1];
-                arr[j+1] = temp;
-                flag = j+1;
-            }
-        }
-        if(flag == 0)   break;
-        i = nlen-flag-1;
-    }
-}
-int main()
-{
-    int arr[] = {3,4,1,2,0,7,9};
-    BubbleSort(arr,sizeof(arr)/sizeof(arr[0]),rule1);
-    for(auto ite:arr){
-        std::cout <<ite<< " ";;
-    }
-	std::cout <<std::endl;
-    double arr1[] = {12.3,12.4,12.4,45.2,44.2,1.7,99.9,22.2};
-    BubbleSort(arr1,sizeof(arr1)/sizeof(arr1[0]),rule2);
-    for(auto ite1:arr1){
-        std::cout <<ite1<< " ";
-    }
-	std::cout <<std::endl;
-    return 0;
-}
-```
-
-#### 类模板
+## 类模板
 
 ​	类模板不能自动推导模板参数类型，只能显示地指定，所以默认的模板参数只能从右向左不能间断
 
@@ -1896,9 +2223,179 @@ int main()
 
 ```
 
+**偏特化**
+
+```c++
+enum class DEVICE{
+    CPU,
+    GPU
+};
+
+template<DEVICE dev,typename IN_T1,typename IN_T2>
+struct CExample{
+    void operator()(IN_T1 a,IN_T2 b);
+};
+
+template<typename IN_T1,typename IN_T2> 
+struct CExample<DEVICE::CPU, IN_T1, IN_T2> //在类名后面指定好实例化时的模板参数
+{
+    void operator()(IN_T1 a,IN_T2 b){
+        std::cout << "CPU:" << a << " " << b << std::endl;
+    }
+};
+
+template<typename IN_T1,typename IN_T2> 
+struct CExample<DEVICE::GPU, IN_T1, IN_T2>
+{
+    void operator()(IN_T1 a,IN_T2 b){
+        std::cout << "GPU:" << a << " " << b << std::endl;
+    }
+};
+
+int main()
+{
+    CExample<DEVICE::GPU,int,int>() (6,6);
+    CExample<DEVICE::CPU,float,float>() (6.6,6.6);
+	return 0;
+}
+```
+
+**模板类型推导**
+
++ 参数的类型为指针或者引用
+
+  ```c++
+  int n = 6;
+  const int nn = n;
+  const int& nnn = n;
+  
+  template<typename T>
+  void f(T& param);
+  f(n);	//T is int,param's type is int&
+  f(nn);	//T is const int,param's type is const int&
+  f(nnn);	//T is const int&,param's type is const int&
+  
+  template <typename T>
+  void f(const T& param);
+  f(n);	//T is int,param's type is const int&
+  f(nn);	//T is int,param's type is const int&
+  f(nnn); //T is int,param's type is const int&
+  
+  template <typename T>
+  void f(T* param);
+  const int *p = &n;
+  f(&n);	//T is int,param's type is int*
+  f(p);	//T is const int,param's type is const int*
+  ```
+
++ 参数的类型是万能引用
+
+  ```c++
+  int n = 6;
+  const int nn = n;
+  const int& nnn = n;
+  
+  template <typename T>
+  void f(T&& param);
+  f(n);	//n is lvalue,T is int&,param's type is also int&
+  f(nn);	//nn is lvalue,T is const int&,param's type is also const int&
+  f(nnn);	//nnn is lvalue,T is const int&,param's type is also const int&
+  f(666);	//666 is rvalue,T is int,param's type is int&&
+  ```
+
+  
+
++ 参数的类型既不是指针也不是引用通常是值传递
+
+  ```c++
+  int n = 6;
+  const int nn = n;
+  const int& nnn = n;
+  
+  //值传递会去掉const
+  template <typename T>
+  void f(T param);
+  f(n);	//T's and param's types are both int
+  f(nn);	//T's and param's types are both int
+  f(nnn);	//T's and param's types are both int
+  
+  const char* const ptr = "zhong";
+  f(ptr);	//T's and param's types are both const char*
+  
+  const char name[] = "zhong";	//name's type is const char [6];
+  const char *ptrToName = name;	//array decays to pointer
+  f(name);	//T deduced as const char*
+  
+  template <typename T>
+  void f(T& param);
+  f(name);	//T is deduced to be const char[6] 
+  
+  //return size of an array as a compile-time constant
+  template<typename T,std::size_t N>
+  constexpr std::size_t arraySize(T (&)[N]) noexcept{
+      return N;
+  }
+  int KeyVals[] = {1,3,5,7,9};
+  int mappedvals[arraySize(KeyVals)];
+  ```
+
+  
+
+## 变参模板
+
+​	可以让函数或者类的方法有接受任意个参数的能力
+
+**typename...：**修饰变参模板的模板参数
+
+**Args...：**告诉编译器函数的参数是可变的
+
+```c++
+#include<iostream>
+
+void myprint() {}
+
+template<typename T,typename... Args>
+void myprint(T firstArg, Args... args) {
+	std::cout << firstArg << std::endl;
+	myprint(args...);
+}
+
+int main()
+{
+	myprint(2001, 6, 6, "zh");
+	return 0;
+}
+```
+
+**Args、args 解包(pack expansion)：**第一次调用myprint时，第一个参数firstArg被推导成了int型的，Args...被推导成了int型的E1、int型的E2、const char *型的E3.剩下的情况一样，直到最后myprint()的参数为空，函数结束，这也就是为什么在上面定义了myprint()的原因
 
 
-#### 类型转换
+
+**sizeof...**
+
+​	帮助我们在编译的时候就知道函数被调用时到底传了几个参数
+
+```c++
+template<typename... Args>
+void func(Args... args) {
+	std::cout << "sizeof...(Args)" << sizeof...(Args) << std::endl;
+	std::cout << "sizeof...(args)" << sizeof...(args) << std::endl;
+	std::cout << "---------------" << std::endl;
+}
+int main()
+{
+    func(2001,6,6,"zh");
+    func(2001, 6, 6);
+	func(2001, 6);
+	func(2001);
+	func();
+	return 0;
+}
+```
+
+
+
+## 类型转换
 
 ​	强调类型安全，收到编译时的检查，减少在尝试强制类型转换时可能会意外犯的错误，比如类型不兼容，还可以帮助我们搜索在哪使用了类型转换
 
@@ -1943,1384 +2440,135 @@ int main()
 }
 ```
 
-
-
-### STL(标准模板库)
-
-+ 迭代器
-+ 容器 ：序列容器（数组、列表、栈、队列）关联容器
-+ 算法
-+ 空间配置器：一级配置器（malloc）二级配置器（内存池）
-+ 配接器：给外面留下了接口，可以改变里面的结构
-+ 仿函数：
-
-#### **vector**
-
-​	当退出作用域时，自动释放，比较安全。
-
-​	注意当用push_back 向vector 尾部加元素的时候,如果当前的空间不足,vector 会重新申请空间，这次申请的空间是原来的空间大小的1.5（看编译器，gcc是2倍）倍，也就是新的可用空间将增加为原来的1.5倍
-
-​	注意当用pop_back 删除尾部的元素时,vector 的capacity 是不会变化的
-
-+ 插入: O(N)
-+ 查看: O(1)
-+ 删除: O(N)
-
-**reserve和resize的区别是什么？**
-
-reserve只是开辟空间并不创建元素。而resize重新开辟空间并自动初始化元素。
-
-**vector内部实现？**
-
-Vector是一个类，它里面有三个指针myfirst,mylast,myend.分别表示首地址，元素容量地址，容器容量地址。通过这三个指针分别表示容器的所有操作。
-
-**优点：**
-
-1. 动态数组，当空间大小不够时，可以自动扩增，每次扩增大小为原来的3倍或者1.5倍。
-
-2. 查询效率很高。
-
-**缺点：**
-
-1. 扩增空间的时候需要重新指向一个连续的内存空间，效率低。
-
-2. 插入删除需要移动元素，效率低。
-
-##### vector和list区别
-
-1）vector底层实现是数组；list是双向 链表。
-
-2）vector支持随机访问，list不支持。
-
-3）vector是顺序内存，list不是。
-
-4）vector在中间节点进行插入删除会导致内存拷贝，list不会。
-
-5）vector一次性分配好内存，不够时才进行2倍扩容；list每次插入新节点都会进行内存申请。
-
-6）vector随机访问性能好，插入删除性能差；list随机访问性能差，插入删除性能好。
-
-初始化
+## ( ) 与 { }
 
 ```c++
-std::vector<int> v(8);
-//C++11
-std::vector<int> v = { 2,0,0,1,0,6,0,6 };
+class Widget{	//C++11开始可以这样进行初始化
+private:
+    int x{0};   //fine
+    int y = 0;  //fine
+    int z(0);   //error
+};
+Widget w1;  //call default constructor
+Widget w2 = w1; //not an assignment;calls copy ctor
+w1 = w2;    //an assignment;calls copy operator=
+
+Widget w3(666);   //call Widget ctor with argument
+Widget w4();      //这有可能是一个无参构造也有可能是一个返回值为Widget的函数，
+                  //C++规定可以解析成声明语句都优先解析成一个声明语句,所以这是一个函数的声明
+Widget w5{};      //calls Widget ctor with no args
+
+std::atomic<int> ai1{0};    //fine
+std::atomic<int> ai2(0);    //fine
+std::atomic<int> ai3 = 0;   //error
+
+double x,y,z;
+int sum{x+y+z}; //统一初始化不允许隐式窄化
+
+std::vector<int> v1(6,6);   //ctor:creat 6-element std::vector,
+                            //all elements have value of 6;
+std::vector<int> v2{6,6};   //use std::initializer_list ctor:
+                            //create 2-element std::vector,
+                            //element values are 6 and 6;
+
+template<typename T,typename... Ts>
+void doSomeWork(Ts&&... params){
+    // T localobject(std::forward<Ts>(params)...);
+    // T localobject{std::forward<Ts>(params)...};
+}
+std::vector<int> v;
+doSomeWork<std::vector<int>>(10,20);
 ```
 
+![image-20230325202348408](C++.assets/image-20230325202348408.png)
+
+
+
 ```c++
-void show(int a)
-{
-    std::cout << a << std::endl;
-}
-bool rule(int a,int b)
-{
-    return a>b;
-}
-int main()
-{
-    // vector<int> vec[10];      	//10个数组
-    //std::vector<int> vec(4,233);	//4个233的数组
-    std::vector<int> vec(10);    //一个数组有10个元素
-    srand((unsigned int)time(0));
-    // for(int i=0;i<10;i++){
-    //     vec.push_back(i);
-    // }
-    for(int i=0;i<10;i++){
-        vec[i] = i;
+class Widget{
+public:
+    Widget(int i,bool b){
+        std::cout << "first" << std::endl;
     }
-    random_shuffle(vec.begin(),vec.end());  	//迭代器是算法与容器的桥梁
-    sort(vec.begin(),vec.end(),&rule);
-    std::cout<< count(vec.begin(),vec.end(),1); //统计1的个数
-    for_each(vec.begin(),vec.end(),&show);
-}
-
-```
-
-```c++
-int main()
-{
-	std::vector<int> a = {2,0,0,1,0,6,0,6};
-	int *p = a.data();							//获取首地址指针
-	int n = a.size();
-	memset(p,-1,sizeof(int)*n);
-	// std::cout << p[0] << std::endl;
-	// std::cout << p[1] << std::endl;
-	std::cout << a[0] << std::endl;
-	std::cout << a[7] << std::endl;
-	return 0;
-}
-```
-
-```c++
-int main()
-{
-	int *p;
-	std::vector<int> holder;
-	{
-		std::vector<int> a = {1,2,3};
-		p = a.data();
-		holder = std::move(a);			//移动赋值
-	}
-	std::cout << p[0] << std::endl;
-}
-```
-
-```c++
-//resize:除了可以在构造函数中指定数组的大小，还可以之后再通过resize函数设置大小
-int main()
-{
-	std::vector<int> vec(4,233);
-	for(auto num: vec){
-		std::cout << num << " ";
-	}
-	std::cout << std::endl;
-	vec.resize(5);
-	for(auto num: vec){
-		std::cout << num << " ";
-	}
-	return 0;
-}
-//clear:清空数组，相当于把长度设置为0，等价于:vec.resize(0)
-//reserve:预留一定容量，避免之后重复分配，会移动元素
-int main()
-{
-	std::vector<int> a = {2,0,0,1,0,6,0,6};
-	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
-	a.reserve(15);
-	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
-	a.resize(3);
-	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
-	a.resize(10);
-	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
-	a.resize(15);
-	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
-	return 0;
-}
-//shrink_to_fit:释放多余容量，只保留刚好为size()大小的容量，会移动元素，迭代器和指针失效
-```
-
-
-
-```c++
-struct Vertex
-{
-    float x,y,z;
+    Widget(int i,double d){
+        std::cout << "second" << std::endl;
+    }
+    Widget(std::initializer_list<long double> il);
+    operator float();
+private:
 };
 
-std::ostream& operator <<(std::ostream& os,const Vertex& vertex)
-{
-    os << vertex.x << "," << vertex.y << "," << vertex.z;
-    return os;
-}
-
 int main()
 {
-    std::vector<Vertex> vertices;
-    vertices.push_back({1,2,3});
-    vertices.push_back({4,5,6});
-    for(int i=0;i<vertices.size();i++){
-        std::cout << vertices[i] << std::endl;
-    }
-    return 0;
-    
-}
-```
-
-```c++
-struct Vertex
-{
-    float x,y,z;
-    Vertex(float x,float y,float z)
-        :x(x) , y(y) , z(z)
-        {}
-    Vertex(const Vertex &vertex)
-    {
-        std::cout << "copied" << std::endl;
-    }
-};
-int main()
-{
-    std::vector<Vertex> vertices;
-    vertices.push_back(Vertex(1,2,3));
-    vertices.push_back(Vertex(4,5,6));
-    vertices.push_back(Vertex(4,5,6));
-    return 0;
-    
-}
-```
-
-**使用优化**
-
-```c++
-struct Vertex
-{
-    float x,y,z;
-    Vertex(float x,float y,float z)
-        :x(x) , y(y) , z(z)
-        {}
-    Vertex(const Vertex &vertex)
-    {
-        std::cout << "copied" << std::endl;
-    }
-};
-int main()
-{
-    std::vector<Vertex> vertices;
-    // std::vector<Vertex> vertices(3);    //会构造三个Vertex对象   
-    vertices.reserve(3);                   //创建3个Vertex大小的内存
-    // vertices.push_back(Vertex(1,2,3));  //在main()的当前栈帧中构造一个Vertex对象
-    // vertices.push_back(Vertex(4,5,6));  //把这个对象拷贝到vector中
-    // vertices.push_back(Vertex(7,8,9));  //vector不断改变大小，里面的对象需要重新拷贝，所以会发生六次拷贝
-    vertices.emplace_back(1,2,3);          //在vector内存中使用传进去的构造函数参数列表，创建一个Vertex对象
-    vertices.emplace_back(4,5,6); 
-    vertices.emplace_back(7,8,9); 
-    return 0;                           
-    
-}
-```
-
-emplace 效率更高，没有拷贝构造，直接在vector的内存中创建一个对象
-
-
-
-#### list
-
-​	是一个双向链表，迭代器具备前移和后移的能力
-
-插入: O(1)
-
-查看: O(N)
-
-删除: O(1)
-
-```c#
-void show(int a)
-{
-    std::cout << a << " ";
-}
-int main()
-{
-    std::list<int> lst;
-    lst.push_back(0);
-    lst.push_back(6);
-    lst.push_back(0);
-    lst.push_back(6);
-    
-    std::list<int>::reverse_iterator ite = lst.rbegin();
-    while(ite != lst.rend()){
-        if(*ite == 0){
-            lst.erase(--(ite.base()));                          //将迭代器转为正向的
-            break;                                              //正向和反向的迭代器相差一
-        }
-        ite++;
-    }
-    for_each(lst.begin(),lst.end(),&show);
+    Widget w1(10,true); //calls first ctor
+    Widget w2{10,true}; //calls third ctor 用花括号初始化器列表列表初始化一个对象，
+    					//其中对应构造函数接受一个std::initializer_list参数
+    Widget w3(10,5.0);  //calls second ctor
+    Widget w4{10,5.0};  //calls third ctor {}中的类型可以转换成或等于<>中的类型就可以
+    Widget w5(w4);  	//uses parens,calls copy ctor
+    Widget w6{w4};  	//uses braces,calls std::initializer_list ctor
+                   		//w4 converts to float,and float converts to long double
+    Widget w7(std::move(w4));   //uses parens,calls move ctor
+    Widget w8(std::move(w4));   //uses braces,calls std::initializer_list ctor,for same reason as w6
     return 0;
 }
 ```
 
-####  map
-
-​	map内部实现了一个红黑树（红黑树是非严格平衡二叉搜索树，而AVL是严格平衡二叉搜索树），红黑树具有自动排序的功能，因此map内部的所有元素都是有序的，红黑树的每一个节点都代表着map的一个元素。因此，对于map进行的查找，删除，添加等一系列的操作都相当于是对红黑树进行的操作。map中的元素是按照二叉搜索树（又名二叉查找树、二叉排序树，特点就是左子树上所有节点的键值都小于根节点的键值，右子树所有节点的键值都大于根节点的键值）存储的，使用中序遍历可将键值按照从小到大遍历出来。
-
-插入: O(logN)
-
-查看: O(logN)
-
-删除: O(logN)
-
-**map优点：**
-
-+ 有序性，这是map结构最大的优点，其元素的有序性在很多应用中都会简化很多的操作
-
-+ map的查找、删除、增加等一系列操作时间复杂度稳定，都为logn
-
-**缺点：**
-
-+ 查找、删除、增加等操作平均时间复杂度较慢，与n相关
-
-##### **map底层红黑树与AVL**
-
-平衡性方面（查找效率）， 插入节点方面，删除节点方面。
-
-因为avl树是**高度平衡**，而红黑树通过增加节点颜色从而实现**部分平衡**，这就导致，插入节点两者都可以最多两次实现复衡，而删除节点，红黑树最多三次旋转即可实现复衡，旋转的量级是O（1），而avl树需要维护从被删除节点到根节点这几个节点的平衡，旋转的量级是O（logn）,所以红黑树效率更高，开销更小，**但是因为红黑树是非严格平衡，所以它的查找效率比avl树低。**
-
-RB-Tree是功能、性能、空间开销的折中结果。
-
-总结：实际应用中，若搜索的次数远远大于插入和删除，那么选择AVL，如果搜索，插入删除次数几乎差不多，应该选择RB。
-
 ```c++
-void show(std::pair<char,int> pr)
-{
-    std::cout << pr.first << " " << pr.second << std::endl;
-}
+class Widget{
+public:
+    Widget(int i,bool b);
+    Widget(int i,double d);
+    Widget(std::initializer_list<bool> il);
+private:
+};
+
 int main()
 {
-    std::map<char,int> mp;
-    mp['a'] = 6;
-    mp['s'] = 0;
-    mp['d'] = 2;
+    Widget w{10,5.0};   //error! requires narrowing conversions,统一初始化不允许窄化
+    return 0;
+}
+//========================================================================================================
+class Widget{
+public:
+    Widget(int i,bool b);
+    Widget(int i,double d);
+    Widget(std::initializer_list<std::string> il);
+private:
+};
 
-    std::map<char,int>::iterator ite = mp.begin();
-    while(ite != mp.end())
-    {
-        std::cout <<  ite->first << " " << ite->second << std::endl;
-        ite++;
-    }
-
-    mp['a'] = 606;                          //修改
-    for_each(mp.begin(),mp.end(),&show);
-    
-    ite = mp.find('s');
-    mp.erase(ite);                          //删除
-    for_each(mp.begin(),mp.end(),&show);
-
-    std::pair<char,int> pr('c',2001);       //插入
-    mp.insert(pr);
-    for_each(mp.begin(),mp.end(),&show);
-
-    std::cout << mp.count('b') << std::endl;//查找是否存在该键值
+int main()
+{
+    Widget w1(10,true);   //uses parens calls first ctor
+    Widget w2{10,true};   //uses braces calls first ctor 参数不能转换
+    Widget w3(10,5.0);    //uses parens calls second ctor
+    Widget w4{10,5.0};    //uses braces calls second ctor
     return 0;
 }
 ```
 
-#### unordered_map
-
-​	unordered_map内部实现了一个哈希表（也叫散列表，通过把关键码值映射到Hash表中一个位置来访问记录，查找的时间复杂度可达到O(1)，其在海量数据处理中有着广泛应用）。因此，其元素的排列顺序是无序的。
-
-查看: O(1)，最坏情况O(N)
-
-删除: O(1)，最坏情况O(N)
-
-**unordered_map优点：**
-
-+ 查找、删除、添加的速度快，时间复杂度为常数级O(c)
-
-**缺点：**
-
-+ 因为unordered_map内部基于哈希表，以（key,value）对的形式存储，因此空间占用率高
-+ Unordered_map的查找、删除、添加的时间复杂度不稳定，平均为O(c)，取决于哈希函数。极端情况下可能为O(n)
-
-#### set
-
-​	集合（基于红黑树实现，相当于二分查找树）
-
-插入: O(logN)
-
-查看: O(logN)
-
-删除: O(logN)
-
-#### **set和vector的区别** 
-
-+ 都是能存储一连串数据的容器
-+ set会自动给其中的元素从小到大排序，而vector会保持插入时的顺序
-+ set会把会把重复的元素去除，只保留一个，即去重
-+ vector中的元素在内存上是连续的，可以高效地按索引随机访问，set则不行
-+ set中的元素可以高效地按值查找，而vector则低效，查找复杂度是O(log n)
-
-
-
-set的排序：string类型会按字典序来排序，所谓字典序就是优先比较两者第一个字符（按ASCII码比较），如果相等则继续比较下一个。
-
-
-
-![image-20220711111313834](C++.assets/image-20220711111313834.png)
-
 ```c++
-int main()
-{
-	std::set<int> s = {2,0,0,1,0,6,0,6};
-	//std::set<int>::iterator s_it = s.begin()+3;	vector提供了+和+=的重载，而set没有。
-	std::set<int>::iterator s_it = s.begin();
-	++s_it;
-	++s_it;
-	++s_it;
-	std::cout << "s[3] " << *s_it << std::endl;
-	return 0;
-}
-```
-
-**std::next等价于+，支持负数**
-
-内部实现：
-
-```c++
-auto next(auto it,int n=1){
-	if(it is random_access){
-        return it+n;
-    }else{
-        if(it is bidirectional && n < 0){
-            while(n++)
-                --it;
-        }
-    	while(n--)
-        	++it;
-    	return it;
-    }
-}
-
-s_it = std::next(s_it,3);
-std::cout << "s[3] " << *s_it << std::endl;
-```
-
-**std::advance等价于+=，支持负数**
-
-内部实现：
-
-```c++
-auto advance(auto &it,int n){
-	if(it is random_access){
-		it+=n;
-    }else{
-        if(it is bidirectional && n < 0){
-            while(n++)
-                --it;
-        }
-        while(n--)
-        ++it;
-    }
-}
-
-std::advance(s_it,3);
-std::cout << "s[3] " << *s_it << std::endl;
-```
-
-![image-20220711163932718](C++.assets/image-20220711163932718.png)
-
-
-
-**查找元素**
-
-```c++
-std::set<int> s = {2,0,0,1,0,6,0,6};
-auto it = s.find(2);
-std::cout << "2的位置: " << *it << std::endl;
-std::cout << "小于2的数: "   << *std::prev(it) << std::endl;
-std::cout << "大于2的数: "   << *std::next(it) << std::endl; 
-// if(s.find(8) != s.end())	std::cout << "8存在 " << std::endl;
-// else	std::cout << "8不存在" << std::endl;
-if(s.count(8))	std::cout << "8存在 " << std::endl;
-else	std::cout << "8不存在 " << std::endl;
-```
-
-**删除元素**
-
-```c++
-std::set<int> s = {2,0,0,1,0,6,0,6};
-auto it = s.find(2);
-s.erase(1);
-s.erase(it);
-for(auto it = s.begin();it != s.end();it++){
-	std::cout << *it << " ";
-}
-return 0;
-```
-
-![image-20220712083953070](C++.assets/image-20220712083953070.png)
-
-**从set中删除指定范围内的元素**
-
-​	erase支持输入两个迭代器作为参数
-
-​	set.erase(beg,end)可以删除集合中从beg到end之间的元素，包含beg,不包含end，[beg,end)。
-
-lower_bound(x)：找第一个大于等于x的元素
-
-upper_bound(x)：找第一个大于x的元素
-
-```c++
-s.erase(s.lower_bound(2),s.upper_bound(4));
-//删除set中所有满足2<=x<=4的元素
-```
-
-**set和其他容器之间的转换**
-
-​	vector的构造函数也能接受两个前向迭代器作为参数，set的迭代器符合这个要求
-
-```c++
-std::set<int> s = {2,0,0,1,0,6,0,6};
-std::vector<int> v = {s.lower_bound(1),s.upper_bound(6)}; 
-```
-
-​		vector转成set让元素自动排序和去重
-
-```c++
-std::vector<int> v = {9,8,5,2,1,1};
-std::set<int> s(v.begin(),v.end());
-v.assign(s.begin(),s.end());
-for(auto value:v){
-	std::cout << value << " ";
-}
-std::cout << std::endl;
-```
-
-​	清空set
-
-```c++
-s.clear();
-s = {};
-s.erase(s.begin(),s.end());
-```
-
-set的不去重版本：multiset
-
-equal_range():一次性求出两个边界，获得等值区间
-
-pair<iterator,iterator> equal_range(int const &val) const;
-
-```c++
-std::multiset<int> ms = {9,8,5,2,1,1};
-auto r = ms.equal_range(1);
-ms.erase(1);
-for(auto value:ms){
-	std::cout << value << " ";
-}
-return 0;
-```
-
-**C++11新增：unordered_set**
-
-​	unordered_set不会排序，里面的元素都是完全随机的顺序，和插入的顺序也不一样，基于哈希散列表实现
-
-+ vector适合按索引查找，通过运算符[]
-+ set适合按值相等查找，按值大于/小于查找，分别通过find()、lower_bound()、upper_bound()
-+ unordered_set适合按值相等查找，通过find()
-
-
-
-### 设计模式
-
-#### **单例模式**
-
-​	单例模式顾名思义，保证一个类仅可以有一个实例化对象，并且提供一个可以访问它的全局接口。实现单例模式必须注意一下几点：
-
-- 单例类只能有一个实例化对象。
-- 单例类必须自己提供一个实例化对象。
-- 单例类必须提供一个可以访问唯一实例化对象的接口。
-
-**单例模式分为懒汉和饿汉两种实现方式。**
-
-+ 懒汉单例模式
-
-​	懒汉：故名思义，不到万不得已就不会去实例化类，也就是说在第一次用到类实例的时候才会去实例化一个对象。在访问量较小，甚至可能不会去访问的情况下，采用懒汉实现，这是以时间换空间。
-
-**非线程安全**
-
-```c++
-* 关键代码：构造函数是私有的，不能通过赋值运算，拷贝构造等方式实例化对象。
-*/
-
-//懒汉式一般实现：非线程安全，getInstance返回的实例指针需要delete
-//缺点：会有内存泄漏的问题，解决办法可以用智能指针或者使用静态的嵌套类对象
-    
-class Singletion
-{
+class Widget{
+public:
+    Widget();
+    Widget(std::initializer_list<int> il);
 private:
-	static Singletion* m_pSingletion;
-private:
-
-	Singletion() {}
-	//~Singletion() {}
-	//Singletion(const Singletion&) {}	//防止拷贝构造创建新的对象
-	
-public:
-	int m_a;
-	static Singletion* GetSingletion() {
-		if (m_pSingletion == nullptr) {
-			m_pSingletion = new Singletion;
-			return m_pSingletion;
-		}
-		return m_pSingletion;
-	}
-	static void DestroySingletion(Singletion* & p) {
-		if (m_pSingletion) {
-			delete m_pSingletion;
-			m_pSingletion = nullptr;
-		}
-		p = nullptr;
-	}
-};
-
-Singletion* Singletion::m_pSingletion = nullptr;
-
-int main()
-{
-	Singletion *s1 = Singletion::GetSingletion();
-	s1->m_a = 10;
-	std::cout << s1->m_a << std::endl;
-	Singletion s2(*s1);
-	s2.m_a = 20;
-	std::cout << s2.m_a << std::endl;
-	Singletion s3 = *s1;
-	s3.m_a = 30;
-	std::cout << s3.m_a << std::endl;
-	return 0;
-}
-
-//class Singleton
-//{
-//private:
-//	static Singleton* instance;
-//private:
-//	Singleton() { };
-//	~Singleton() { };
-//	Singleton(const Singleton&);
-//	Singleton& operator=(const Singleton&);
-//private:
-//	class Deletor {
-//	public:
-//		~Deletor() {
-//			if(Singleton::instance != NULL)
-//				delete Singleton::instance;
-//		}
-//	};
-//	static Deletor deletor;
-//public:
-//	static Singleton* getInstance() {
-//		if(instance == NULL) {
-//			instance = new Singleton();
-//		}
-//		return instance;
-//	}
-//};
-//
-//// init static member
-//Singleton* Singleton::instance = NULL;
-```
-
-**线程安全**
-
-```c++
-std::mutex mt;
-       
-class Singleton
-{
-public:
-    static Singleton* getInstance();
-private:
-    Singleton(){}                                    //构造函数私有
-    Singleton(const Singleton&) = delete;            //明确拒绝
-    Singleton& operator=(const Singleton&) = delete; //明确拒绝
-
-    static Singleton* m_pSingleton;
-    
-};
-Singleton* Singleton::m_pSingleton = NULL;
-
-Singleton* Singleton::getInstance()
-{
-    if(m_pSingleton == NULL)
-    {
-        mt.lock();
-        if(m_pSingleton == NULL)
-        {
-            m_pSingleton = new Singleton();
-        }
-        mt.unlock();
-    }
-    return m_pSingleton;
-}
-```
-
-+ 饿汉单例模式
-
-​	饿汉：饿了肯定要饥不择食。所以在单例类定义的时候就进行实例化。在访问量比较大，或者可能访问的线程比较多时，采用饿汉实现，可以实现更好的性能。这是以空间换时间。
-
-```c++
-class Singletion
-{
-private:
-	static Singletion m_Singletion;		//C++类的静态成员变量，声明但未定义
-public:
-	int m_a;
-	static Singletion& getInstance()
-	{
-		return m_Singletion;
-	}
-private:
-	Singletion() {}
-	~Singletion(){}
-	Singletion(const Singletion &) {}
-	
-};
-Singletion Singletion::m_Singletion;		//定义
-
-int main()
-{
-	Singletion &s = Singletion::getInstance();
-	s.m_a = 6;
-	std::cout << s.m_a << std::endl;
-	return 0;
-}
-
-//静态成员变量的初始化/定义是被看做为它自身的类域中
-//私有构造函数的目的并不是禁止对象构造，其目的在于控制哪些代码能够调用这个构造函数，进而限制类对象的创建。私有的构造函数可以被该类	的所有成员函数（静态或非静态的）调用，该类的友元类或友元方法也能访问该类的私有函数
-//饿汉模式有一个缺点，m_Singletion是动态初始化（通过执行期间的Singletion构造函数调用），而懒汉模式的m_pSingletion是静态初始化（可通过编译期常量来初始化）。程序的第一条assembly（汇编语言）语句被执行之前，编译器就已经完成了静态初始化（通常静态初始化相关数值或动作（static initializers）就位于“内含可执行程序"的文件中，所以，程序被装载（loading）之际也就是初始化之时）。然而面对不同编译单元（translation unit:大致上你可以把编译单元视为可被编译的C++源码文件）中的动态初始化对象，C++并未定义其间的初始化顺序，这就是麻烦的主要根源，当调用getInstance()时可能返回一个尚未构造的对象）
-//简单来说，潜在问题在于no-local static对象（函数外的static对象）在不同编译单元中的初始化顺序是未定义的，如果在初始化完成之前调用 getInstance() 方法会返回一个未定义的实例。
-```
-
-**local static**
-
-```c++
-//多线程安全 C++11后
-class Singleton
-{
-private:
-	Singleton() { };
-	~Singleton() { };
-	Singleton(const Singleton&);
-	Singleton& operator=(const Singleton&);
-public:
-	static Singleton& getInstance() 
-        {
-		static Singleton instance;
-		return instance;
-	}
-};
-```
-
-
-
-#### **模板方法模式**
-
-​	定义一个操作中的算法的骨架，而将一些步骤延迟到子类中。模板方法使得子类可以不改变一个算法的结构即可重定义该算法的某些特定步骤。
-
-当多个类有相同的方法，并且逻辑相同，只是细节上有差异时，可以考虑使用模板模式。具体的实现上可以将相同的核心算法设计为模板方法，具体的实现细节有子类实现。
-
-缺点:每一个不同的实现都需要一个子类来实现，导致类的个数增加，使得系统更加庞大。
-
-```c++
-class CPerson
-{
-public:
-	virtual void kind() = 0;
-public:
-	void print()
-	{
-		std::cout << "who " <<std::endl;
-		std::cout << "are " <<std::endl;
-		std::cout << "you: " <<std::endl;
-		this->kind();
-	}
-};
-class CChina : public CPerson
-{
-public:
-	void kind()
-	{
-		std::cout << "China" << std::endl;
-	}
-};
-class CJapan : public CPerson
-{
-public:
-	void kind()
-	{
-		std::cout << "Japan" << std::endl;
-	}
-};
-int main()
-{
-	CChina c;
-	c.print();
-	CJapan j;
-	j.print();
-	return 0;
-}
-```
-
-####  **工厂模式**
-
-​	在工厂模式中，我们在创建对象时不会对客户端暴露创建逻辑，并且是通过使用一个共同的接口来指向新创建的对象。工厂模式作为一种创建模式，一般在创建复杂对象时，考虑使用。
-
-+ 简单工厂模式
-
-​	**主要特点是需要在工厂类中做判断，从而创造相应的产品，**当增加新产品时，需要修改工厂类。使用简单工厂模式，我们只需要知道具体的产品型号就可以创建一个产品。
-
-缺点：工厂类集中了所有产品类的创建逻辑，如果产品量较大，会使得工厂类变的非常臃肿。
-
-```c++
-//定义产品类型信息
-typedef enum
-{
-    Tank_Type_56,
-    Tank_Type_96,
-    Tank_Type_Num
-}Tank_Type;
-//抽象产品类
-class Tank
-{
-public:
-    virtual const string& type() = 0;
-};
-//具体的产品类
-class Tank56 : public Tank
-{
-public:
-    Tank56():Tank(),m_strType("Tank56")
-    {
-    }
-    const string& type() override
-    {
-        cout << m_strType.data() << endl;
-        return m_strType;
-    }
-private:
-    string m_strType;
-};
-//具体的产品类
-class Tank96 : public Tank
-{
-public:
-    Tank96():Tank(),m_strType("Tank96")
-    {
-    }
-    const string& type() override
-    {
-        cout << m_strType.data() << endl;
-        return m_strType;
-    }
-private:
-    string m_strType;
-}; 
-//工厂类
-class TankFactory
-{
-public:
-    //根据产品信息创建具体的产品类实例，返回一个抽象产品类
-    Tank* createTank(Tank_Type type)
-    {
-        switch(type)
-        {
-        case Tank_Type_56:
-            return new Tank56();
-        case Tank_Type_96:
-            return new Tank96();
-        default:
-            return nullptr;
-        }
-    }
-};
-```
-
-+ 工厂方法模式
-
-​	定义一个创建对象的接口，其子类去具体现实这个接口以完成具体的创建工作。如果需要增加新的产品类，只需要扩展一个相应的工厂类即可。
-
-缺点：产品类数据较多时，需要实现大量的工厂类，这无疑增加了代码量。
-
-**在简单工厂的基础上，进一步将工厂类进行抽象，拆分多个类型的工厂，每个工厂创建对应类型的 类对象。**
-
-```c++
-class Tank
-{
-public:
-    virtual const string& type() = 0;
-};
-
-//具体的产品类
-class Tank56 : public Tank
-{
-public:
-    Tank56():Tank(),m_strType("Tank56")
-    {
-    }
-
-    const string& type() override
-    {
-        cout << m_strType.data() << endl;
-        return m_strType;
-    }
-private:
-    string m_strType;
-};
-
-//具体的产品类
-class Tank96 : public Tank
-{
-public:
-    Tank96():Tank(),m_strType("Tank96")
-    {
-    }
-    const string& type() override
-    {
-        cout << m_strType.data() << endl;
-        return m_strType;
-    }
-
-private:
-    string m_strType;
-}; 
-
-//抽象工厂类，提供一个创建接口
-class TankFactory
-{
-public:
-    //提供创建产品实例的接口，返回抽象产品类
-    virtual Tank* createTank() = 0;
-};
-
-//具体的创建工厂类，使用抽象工厂类提供的接口，去创建具体的产品实例
-class Tank56Factory : public TankFactory
-{
-public:
-    Tank* createTank() override
-    {
-        return new Tank56();
-    }
-};
-
-//具体的创建工厂类，使用抽象工厂类提供的接口，去创建具体的产品实例
-class Tank96Factory : public TankFactory
-{
-public:
-    Tank* createTank() override
-    {
-        return new Tank96();
-    }
-};
-```
-
-+ 抽象工厂模式
-
-​	抽象工厂模式提供创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
-
-当存在多个产品系列，而客户端只使用一个系列的产品时，可以考虑使用抽象工厂模式。
-
-缺点：当增加一个新系列的产品时，不仅需要现实具体的产品类，还需要增加一个新的创建接口，扩展相对困难。
-
-**抽象工厂（Abstract Factory Pattern）和工厂方法的模式基本一样，区别在于，工厂方法是生产一 个具体的产品，而抽象工厂可以用来生产一组相同，有相对关系的产品，重点在于一组，一批，一 系列**
-
-```c++
-//抽象上衣类
-class Coat
-{
-public:
-    virtual const string& color() = 0;
-};
-
-//黑色上衣类
-class BlackCoat : public Coat
-{
-public:
-    BlackCoat():Coat(),m_strColor("Black Coat")
-    {
-    }
-
-    const string& color() override
-    {
-        cout << m_strColor.data() << endl;
-        return m_strColor;
-    }
-private:
-    string m_strColor;
-};
-
-//白色上衣类
-class WhiteCoat : public Coat
-{
-public:
-    WhiteCoat():Coat(),m_strColor("White Coat")
-    {
-    }
-    const string& color() override
-    {
-        cout << m_strColor.data() << endl;
-        return m_strColor;
-    }
-
-private:
-    string m_strColor;
-}; 
-
-//抽象裤子类
-class Pants
-{
-public:
-    virtual const string& color() = 0;
-};
-
-//黑色裤子类
-class BlackPants : public Pants
-{
-public:
-    BlackPants():Pants(),m_strColor("Black Pants")
-    {
-    }
-    const string& color() override
-    {
-        cout << m_strColor.data() << endl;
-        return m_strColor;
-    }
-
-private:
-    string m_strColor;
-};
-
-//白色裤子类
-class WhitePants : public Pants
-{
-public:
-    WhitePants():Pants(),m_strColor("White Pants")
-    {
-    }
-    const string& color() override
-    {
-        cout << m_strColor.data() << endl;
-        return m_strColor;
-    }
-
-private:
-    string m_strColor;
-};
-
-//抽象工厂类，提供衣服创建接口
-class Factory
-{
-public:
-    //上衣创建接口，返回抽象上衣类
-    virtual Coat* createCoat() = 0;
-    //裤子创建接口，返回抽象裤子类
-    virtual Pants* createPants() = 0;
-};
-
-//创建白色衣服的工厂类，具体实现创建白色上衣和白色裤子的接口
-class WhiteFactory : public Factory
-{
-public:
-    Coat* createCoat() override
-    {
-        return new WhiteCoat();
-    }
-
-    Pants* createPants() override
-    {
-        return new WhitePants();
-    }
-};
-
-//创建黑色衣服的工厂类，具体实现创建黑色上衣和白色裤子的接口
-class BlackFactory : public Factory
-{
-    Coat* createCoat() override
-    {
-        return new BlackCoat();
-    }
-
-    Pants* createPants() override
-    {
-        return new BlackPants();
-    }
-};
-```
-
-#### **策略模式**
-
-​	策略模式是指定义一系列的算法，把它们单独封装起来，并且使它们可以互相替换，使得算法可以独立于使用它的客户端而变化，也是说这些算法所完成的功能类型是一样的，对外接口也是一样的，只是不同的策略为引起环境角色环境角色表现出不同的行为。
-
-相比于使用大量的if...else，使用策略模式可以降低复杂度，使得代码更容易维护。
-
-缺点：可能需要定义大量的策略类，并且这些策略类都要提供给客户端。
-
-+ 传统的策略模式实现
-
-```c++
- //抽象策略类，提供一个接口
-class Hurt
-{
-public:
-    virtual void blood() = 0;
-};
-
-//具体的策略实现类，具体实现接口， Adc持续普通攻击
-class AdcHurt : public Hurt
-{
-public:
-    void blood() override
-    {
-        cout << "Adc hurt, Blood loss" << endl;
-    }
-};
-
-//具体的策略实现类，具体实现接口， Apc技能攻击
-class ApcHurt : public Hurt
-{
-public:
-    void blood() override
-    {
-        cout << "Apc Hurt, Blood loss" << endl;
-    }
-};
-
-//环境角色类， 游戏角色战士，传入一个策略类指针参数。
-class Soldier
-{
-public:
-    Soldier(Hurt* hurt):m_pHurt(hurt)
-    {
-    }
-    //在不同的策略下，该游戏角色表现出不同的攻击
-    void attack()
-    {
-        m_pHurt->blood();
-    }
-private:
-    Hurt* m_pHurt;
-};
-
-//定义策略标签
-typedef enum
-{
-    Hurt_Type_Adc,
-    Hurt_Type_Apc,
-    Hurt_Type_Num
-}HurtType;
-
-//环境角色类， 游戏角色法师，传入一个策略标签参数。
-class Mage
-{
-public:
-    Mage(HurtType type)
-    {
-        switch(type)
-        {
-        case Hurt_Type_Adc:
-            m_pHurt = new AdcHurt();
-            break;
-        case Hurt_Type_Apc:
-            m_pHurt = new ApcHurt();
-            break;
-        default:
-            break;
-        }
-    }
-    ~Mage()
-    {
-        delete m_pHurt;
-        m_pHurt = nullptr;
-        cout << "~Mage()" << endl;
-    }
-
-    void attack()
-    {
-        m_pHurt->blood();
-    }
-private:
-    Hurt* m_pHurt;
-};
-
-//环境角色类， 游戏角色弓箭手，实现模板传递策略。
-template<typename T>
-class Archer
-{
-public:
-    void attack()
-    {
-        m_hurt.blood();
-    }
-private:
-    T m_hurt;
 };
 
 int main()
 {
-    Archer<ApcHurt>* arc = new Archer<ApcHurt>;
-    arc->attack();
-
-    delete arc;
-    arc = nullptr;
-    
+    Widget w1;      //calls default ctor
+    Widget w2{};    //calls default ctor
+    Widget w3();    //declares a function
+    Widget w4({});  //calls std::initailizer_list ctor with empty list
+    Widget w5{{}};  //ditto
     return 0;
 }
 ```
 
-+ 使用函数指针实现策略模式
 
-```c++
-void adcHurt()
-{
-    std::cout << "Adc Hurt" << std::endl;
-}
 
-void apcHurt()
-{
-    std::cout << "Apc Hurt" << std::endl;
-}
-
-//环境角色类， 使用传统的函数指针
-class Soldier
-{
-public:
-    typedef void (*Function)();
-    Soldier(Function fun): m_fun(fun)
-    {
-    }
-    void attack()
-    {
-        m_fun();
-    }
-private:
-    Function m_fun;
-};
-int main()
-{
-    Soldier* soldier = new Soldier(apcHurt);
-    soldier->attack();
-    delete soldier;
-    soldier = nullptr;
-    return 0;
-} 
-```
-
-#### **中介者模式**
-
-​	用一个中介对象来封装一系列的对象交互，中介者使各对象不需要显示地相互引用，从而使其耦合松散，而且可以独立地改变它们之前的交互。
-
-#### **观察者模式**
-
-​	观察者模式：定义对象间的一种一对多的依赖关系，当一个对象的状态发生改变时，所有依赖于它的对象都要得到通知并自动更新。
-
-观察者模式从根本上讲必须包含两个角色：观察者和被观察对象。
-
-- 被观察对象自身应该包含一个容器来存放观察者对象，当被观察者自身发生改变时通知容器内所有的观察者对象自动更新。
-- 观察者对象可以注册到被观察者的中，完成注册后可以检测被观察者的变化，接收被观察者的通知。当然观察者也可以被注销掉，停止对被观察者的监控。
-
-```c++
- class View;
- ​
- //被观察者抽象类   数据模型
- class DataModel
- {
- public:
-     virtual ~DataModel(){}
-     virtual void addView(View* view) = 0;
-     virtual void removeView(View* view) = 0;
-     virtual void notify() = 0;   //通知函数
- };
- ​
- //观察者抽象类   视图
- class View
- {
- public:
-     virtual ~View(){ cout << "~View()" << endl; }
-     virtual void update() = 0;
-     virtual void setViewName(const string& name) = 0;
-     virtual const string& name() = 0;
- };
- ​
- //具体的被观察类， 整数模型
- class IntDataModel:public DataModel
- {
- public:
-     ~IntDataModel()
-     {
-         m_pViewList.clear();
-     }
- ​
-     virtual void addView(View* view) override
-     {
-         shared_ptr<View> temp(view);
-         auto iter = find(m_pViewList.begin(), m_pViewList.end(), temp);
-         if(iter == m_pViewList.end())
-         {
-             m_pViewList.push_front(temp);
-         }
-         else
-         {
-             cout << "View already exists" << endl;
-         }
-     }
- ​
-     void removeView(View* view) override
-     {
-         auto iter = m_pViewList.begin();
-         for(; iter != m_pViewList.end(); iter++)
-         {
-             if((*iter).get() == view)
-             {
-                 m_pViewList.erase(iter);
-                 cout << "remove view" << endl;
-                 return;
-             }
-         }
-     }
- ​
-     virtual void notify() override
-     {
-         auto iter = m_pViewList.begin();
-         for(; iter != m_pViewList.end(); iter++)
-         {
-             (*iter).get()->update();
-         }
-     }
- ​
- private:
-     list<shared_ptr<View>> m_pViewList; 
- };
- ​
- //具体的观察者类    表视图
- class TableView : public View
- {
- public:
-     TableView() : m_name("unknow"){}
-     TableView(const string& name) : m_name(name){}
-     ~TableView(){ cout << "~TableView(): " << m_name.data() << endl; }
- ​
-     void setViewName(const string& name)
-     {
-         m_name = name;
-     }
- ​
-     const string& name()
-     {
-         return m_name;
-     }
- ​
-     void update() override
-     {
-         cout << m_name.data() << " update" << endl;
-     }
- ​
- private:
-     string m_name;
- };
- ​
- int main()
- {
-     /*
-     * 这里需要补充说明的是在此示例代码中，View一旦被注册到DataModel类之后，DataModel解析时会自动解析掉     * 内部容器中存储的View对象，因此注册后的View对象不需要在手动去delete，再去delete View对象会出错。
-     */
-     
-     View* v1 = new TableView("TableView1");
-     View* v2 = new TableView("TableView2");
-     View* v3 = new TableView("TableView3");
-     View* v4 = new TableView("TableView4");
- ​
-     IntDataModel* model = new IntDataModel;
-     model->addView(v1);
-     model->addView(v2);
-     model->addView(v3);
-     model->addView(v4);
- ​
-     model->notify();
- ​
-     cout << "-------------\n" << endl;
- 
-     model->removeView(v1);
- 
-     model->notify();
- 
-     delete model;
-     model = nullptr;
- 
-     return 0;
- }
- 
-```
-
-### C++11
+# C++11
 
 ```c++
 //范围for
@@ -3361,7 +2609,7 @@ int main()
 }
 ```
 
-#### **右值引用**
+## **右值引用**
 
 ​	解决了移动语义、完美转发
 
@@ -3470,7 +2718,7 @@ template<class _Ty>
 	};
 ```
 
-#### **lambda**
+## **lambda**
 
 ​	只要有函数指针就可以使用lamda
 
@@ -3555,7 +2803,7 @@ int main()
 + 指针释放后置NULL
 + 使用智能指针
 
-#### **智能指针**
+## **智能指针**
 
 ​	万物皆可对象，指针封装成类，构造，析构回收指针所指向的空间
 
@@ -3643,7 +2891,7 @@ int main()
 + 如果失效（计数器归零）则expired()会返回false，且lock()也会返回nuullptr
 + ![image-20220925141741729](C++.assets/image-20220925141741729.png)
 
-#### 完美转发
+## 完美转发
 
 ​	参数转发，例如将参数arg通过factory传递给T的构造
 
@@ -3740,7 +2988,7 @@ int main()
    }
    ```
 
-### 现代C++中的多线程：std::thread
+# std::thread
 
 + 错误：找不到符号pthread_create
 + std::thread是基于pthread
@@ -3835,123 +3083,538 @@ int main()
 + 这就是为什么wait()需要一个unique_lock作为参数，因为要保证多个线程被唤醒，只有一个能够被启动。
 + ![image-20221017204725743](C++.assets/image-20221017204725743.png)
 
-### **C/C++比较**
-
-- c的程序比较小且快
-- 面向对象三大特性 封装（行为和特征封装在一起）、继承、多态
-- 编译
-- 结构体，c中的结构体没有函数，C++中struct与类差不多，默认访问属性不一样
-- C++有STL，写代码更容易
-- new malloc区别
-- 指针与引用的区别    
-  1. 引用初始化要给初值
-  2. 引用不可以改变值
-  3. 引用不占空间
-  4. 引用不能为空 
 
 
+# STL(标准模板库)
 
-### **C和C++结构体的区别**
++ 迭代器
++ 容器 ：序列容器（数组、列表、栈、队列）关联容器
++ 算法
++ 空间配置器：一级配置器（malloc）二级配置器（内存池）
++ 配接器：给外面留下了接口，可以改变里面的结构
++ 仿函数：
 
-（1）C的结构体内不允许有函数存在，C++允许有内部成员函数，且允许该函数是虚函数。
+## **vector**
 
-（2）C的结构体对内部成员变量的访问权限只能是public，而C++允许public,protected,private三种。
+​	当退出作用域时，自动释放，比较安全。
 
-（3）C语言的结构体是不可以继承的，C++的结构体是可以从其他的结构体或者类继承过来的。
+​	注意当用push_back 向vector 尾部加元素的时候,如果当前的空间不足,vector 会重新申请空间，这次申请的空间是原来的空间大小的1.5（看编译器，gcc是2倍）倍，也就是新的可用空间将增加为原来的1.5倍
 
-（4）C 中使用结构体需要加上 struct 关键字，或者对结构体使用 typedef 取别名，而 C++ 中可以省略 struct 关键字直接使
+​	注意当用pop_back 删除尾部的元素时,vector 的capacity 是不会变化的
 
++ 插入: O(N)
++ 查看: O(1)
++ 删除: O(N)
 
+**reserve和resize的区别是什么？**
 
-### **内存是怎样分配的？**
+​	reserve只是开辟空间并不创建元素。而resize重新开辟空间并自动初始化元素。
 
-**按区分：代码区、全局/静态区、常量区、堆栈区**
+**vector内部实现？**
 
-代码区：存放程序的代码，即CPU执行的机器指令，一般只读。
+​	Vector是一个类，它里面有三个指针myfirst,mylast,myend.分别表示首地址，元素容量地址，容器容量地址。通过这三个指针分别表示容器的所有操作。
 
-静态区（全局区）：存放静态变量和全局变量。
+**优点：**
 
-常量区：存放常量(程序在运行的期间不能够被改变的量，例如: 10，字符串常量”abcde”， 数组的名字等)
+1. 动态数组，当空间大小不够时，可以自动扩增，每次扩增大小为原来的3倍或者1.5倍。
 
-堆区：由程序员调用malloc()函数来主动申请的，需使用free()函数来释放内存。
+2. 查询效率很高。
 
-栈区：存放函数内的局部变量，形参和函数返回值。
+**缺点：**
 
+1. 扩增空间的时候需要重新指向一个连续的内存空间，效率低。
 
+2. 插入删除需要移动元素，效率低。
 
-### 迭代器失效
+**vector和list区别**
 
-  用过，常用容器迭代器失效情形如下。
-
-1. 对于序列容器vector，deque来说，使用erase后，后边的每个元素的迭代器都会失效，后边每个元素都往前移动一位，erase返回下一个有效的迭代器。
-2. 对于关联容器map，set来说，使用了erase后，当前元素的迭代器失效，但是其结构是红黑树，删除当前元素，不会影响下一个元素的迭代器，所以在调用erase之前，记录下一个元素的迭代器即可。
-3. 对于list来说，它使用了不连续分配的内存，并且它的erase方法也会返回下一个有效的迭代器，因此上面两种方法都可以使用。
-
-### 构造函数可以是虚函数吗？
-
-虚函数相应一个指向vtable虚函数表的指针，但是这个指向vtable的指针事实上是存储在对象的内存空间的。假设构造函数是虚的，就须要通过 vtable来调用，但是对象还没有实例化，也就是内存空间还没有，怎么找vtable呢？所以构造函数不能是虚函数。
-
-**静态成员函数可以设置为virtual吗？为什么？**
-
-1. static成员不属于任何类对象或类实例，所以即使给此函数加上virutal也是没有任何意义的。
-
-2. 静态与非静态成员函数之间有一个主要的区别。那就是静态成员函数没有this指针。
+1. vector底层实现是数组；list是双向链表。
+2. vector支持随机访问，list不支持。
+3. vector是顺序内存，list不是。
+4. vector在中间节点进行插入删除会导致内存拷贝，list不会。
+5. vector一次性分配好内存，不够时才进行2倍扩容；list每次插入新节点都会进行内存申请。
+6. vector随机访问性能好，插入删除性能差；list随机访问性能差，插入删除性能好。
 
 
 
-### **结构体对齐**
+**初始化**
 
-经过内存对齐后，CPU的内存访问速度大大提升，因为如果没有内存对齐的话，CPU在访问一个数据时可能会进行多次访问然后拼接在一起。 
-
-规则一.： 每个**成员变量**在其结构体内的**偏移量**都是**成员变量类型**的大小的倍数。
-
-规则二： 如果有**嵌套结构体**，那么内嵌结构体的第一个成员变量在外结构体中的**偏移量**，是内嵌结构体中那个数据类型大小**最大**的成员变量的倍数。
-
-规则三： **整个结构体**的大小要是这个结构体内数据类型大小**最大**的成员变量的**倍数**。如果有内嵌结构体，那么取内嵌结构体中数据类型大小最大的成员变量作为计算外结构体整体大小的依据。
-
-```c
-typedef struct TEST{
-	int na;
-    char cb;
-    char cc;
-    int nd;
-    char cf;
-    struct TT{
-        int ng;
-        long long llh;
-    }tt;
-    char ci;
-}test;
+```c++
+std::vector<int> v(8);
+//C++11
+std::vector<int> v = { 2,0,0,1,0,6,0,6 };
 ```
 
-![image-20220914013257895](C++.assets/image-20220914013257895.png)
+```c++
+void show(int a)
+{
+    std::cout << a << std::endl;
+}
+bool rule(int a,int b)
+{
+    return a>b;
+}
+int main()
+{
+    // vector<int> vec[10];      	//10个数组
+    //std::vector<int> vec(4,233);	//4个233的数组
+    std::vector<int> vec(10);    //一个数组有10个元素
+    srand((unsigned int)time(0));
+    // for(int i=0;i<10;i++){
+    //     vec.push_back(i);
+    // }
+    for(int i=0;i<10;i++){
+        vec[i] = i;
+    }
+    random_shuffle(vec.begin(),vec.end());  	//迭代器是算法与容器的桥梁
+    sort(vec.begin(),vec.end(),&rule);
+    std::cout<< count(vec.begin(),vec.end(),1); //统计1的个数
+    for_each(vec.begin(),vec.end(),&show);
+}
 
-### Top K 问题
+```
 
-+ 冒K个泡
+```c++
+int main()
+{
+	std::vector<int> a = {2,0,0,1,0,6,0,6};
+	int *p = a.data();							//获取首地址指针
+	int n = a.size();
+	memset(p,-1,sizeof(int)*n);
+	// std::cout << p[0] << std::endl;
+	// std::cout << p[1] << std::endl;
+	std::cout << a[0] << std::endl;
+	std::cout << a[7] << std::endl;
+	return 0;
+}
+```
 
-+ 先用前k个元素生成一个小顶堆，这个小顶堆用于存储，当前最大的k个元素。接着，从第k+1个元素开始扫描，和堆顶（堆中最小的元素）比较，如果被扫描的元素大于堆顶，则替换堆顶的元素，并调整堆，以保证堆内的k个元素，总是当前最大的k个元素。
+```c++
+int main()
+{
+	int *p;
+	std::vector<int> holder;
+	{
+		std::vector<int> a = {1,2,3};
+		p = a.data();
+		holder = std::move(a);			//移动赋值
+	}
+	std::cout << p[0] << std::endl;
+}
+```
 
-  + **优化**：可以通过并行计算（多线程或者分布式运算）的方式进一步提高算法效率：
+```c++
+//resize:除了可以在构造函数中指定数组的大小，还可以之后再通过resize函数设置大小
+int main()
+{
+	std::vector<int> vec(4,233);
+	for(auto num: vec){
+		std::cout << num << " ";
+	}
+	std::cout << std::endl;
+	vec.resize(5);
+	for(auto num: vec){
+		std::cout << num << " ";
+	}
+	return 0;
+}
+//clear:清空数组，相当于把长度设置为0，等价于:vec.resize(0)
+//reserve:预留一定容量，避免之后重复分配，会移动元素
+int main()
+{
+	std::vector<int> a = {2,0,0,1,0,6,0,6};
+	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
+	a.reserve(15);
+	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
+	a.resize(3);
+	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
+	a.resize(10);
+	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
+	a.resize(15);
+	std::cout << a.data() << " " << a.size() << " " << a.capacity() << std::endl;
+	return 0;
+}
+//shrink_to_fit:释放多余容量，只保留刚好为size()大小的容量，会移动元素，迭代器和指针失效
+```
 
-    - 通过Hash方法将n个数据随机切分成m份，需要的时间复杂度为 ![[公式]](https://www.zhihu.com/equation?tex=O%28n%29)
-    - 对于m份数据并行使用小顶堆选出最大的k个数据，需要的时间复杂度为 ![[公式]](https://www.zhihu.com/equation?tex=O%28%5Cfrac%7Bn%7D%7Bm%7Dlog_2k%29) ，运算完后得到m组长度为k的**小顶堆**
-    - 并行对上步每一个小顶堆进行堆排序，得到m个长度为k的有序序列，时间复杂度为 ![[公式]](https://www.zhihu.com/equation?tex=O%28klog_2k%29)
-    - 二分查找取出m个有序序列中最大的数，遍历k次即可，时间复杂度为 ![[公式]](https://www.zhihu.com/equation?tex=O%28klog_2m%29)
+```c++
+struct Vertex
+{
+    float x,y,z;
+};
 
-    由于第二步和第三步可以并行计算，因此总的时间复杂度为：![[公式]](https://www.zhihu.com/equation?tex=O%28n+%2B+%28%5Cfrac%7Bn%7D%7Bm%7D+%2B+k%29+log_2k+%2B+k+log_2m%29+)
+std::ostream& operator <<(std::ostream& os,const Vertex& vertex)
+{
+    os << vertex.x << "," << vertex.y << "," << vertex.z;
+    return os;
+}
 
-**哈希表**
+int main()
+{
+    std::vector<Vertex> vertices;
+    vertices.push_back({1,2,3});
+    vertices.push_back({4,5,6});
+    for(int i=0;i<vertices.size();i++){
+        std::cout << vertices[i] << std::endl;
+    }
+    return 0;
+    
+}
+```
 
-哈希表就是数组+哈希函数，其核心思想是利用数组可以按照下标索引随机访问数据的特性。
+```c++
+struct Vertex
+{
+    float x,y,z;
+    Vertex(float x,float y,float z)
+        :x(x) , y(y) , z(z)
+        {}
+    Vertex(const Vertex &vertex)
+    {
+        std::cout << "copied" << std::endl;
+    }
+};
+int main()
+{
+    std::vector<Vertex> vertices;
+    vertices.push_back(Vertex(1,2,3));
+    vertices.push_back(Vertex(4,5,6));
+    vertices.push_back(Vertex(4,5,6));
+    return 0;
+    
+}
+```
 
-### **解决哈希冲突**
+**使用优化**
 
-开放寻址法，就是当发生哈希冲突时，重新找到空闲的位置，然后插入元素。寻址方式有多种，常用的有线性寻址、二次方寻址、双重哈希寻址：
+```c++
+struct Vertex
+{
+    float x,y,z;
+    Vertex(float x,float y,float z)
+        :x(x) , y(y) , z(z)
+        {}
+    Vertex(const Vertex &vertex)
+    {
+        std::cout << "copied" << std::endl;
+    }
+};
+int main()
+{
+    std::vector<Vertex> vertices;
+    // std::vector<Vertex> vertices(3);    //会构造三个Vertex对象   
+    vertices.reserve(3);                   //创建3个Vertex大小的内存
+    // vertices.push_back(Vertex(1,2,3));  //在main()的当前栈帧中构造一个Vertex对象
+    // vertices.push_back(Vertex(4,5,6));  //把这个对象拷贝到vector中
+    // vertices.push_back(Vertex(7,8,9));  //vector不断改变大小，里面的对象需要重新拷贝，所以会发生六次拷贝
+    vertices.emplace_back(1,2,3);          //在vector内存中使用传进去的构造函数参数列表，创建一个Vertex对象
+    vertices.emplace_back(4,5,6); 
+    vertices.emplace_back(7,8,9); 
+    return 0;                           
+    
+}
+```
 
-线性寻址，当需要插入元素的位置被占用时，顺序向后寻址，如果到数组最后也没找到一个空闲位置，则从数组开头寻址，直到找到一个空闲位置插入数据。线性寻址的每次寻址步长是1，寻址公式hash(key)+n（n是寻址的次数）。
-二次方寻址，就是线性寻址的总步长的二次方，即hash(key)+n^2。
+emplace 效率更高，没有拷贝构造，直接在vector的内存中创建一个对象
 
-双重哈希寻址，顾名思义就是多次哈希直到找到一个不冲突的哈希值。
 
-**当更多的数插入时，哈希表冲突的可能性就更大。**对于冲突，哈希表通常有两种解决方案：第一种是线性探索，相当于在冲突的地方后建立一个单链表，这种情况下，插入和查找以及删除操作消耗的时间会达到O(n)，且该哈希表需要更多的空间进行储存。第二种方法是开放寻址，他不需要更多的空间，但是在最坏的情况下（例如所有输入数据都被map到了一个index上）的时间复杂度也会达到O(n)。	00
+
+## list
+
+​	是一个双向链表，迭代器具备前移和后移的能力
+
+插入: O(1)
+
+查看: O(N)
+
+删除: O(1)
+
+```c#
+void show(int a)
+{
+    std::cout << a << " ";
+}
+int main()
+{
+    std::list<int> lst;
+    lst.push_back(0);
+    lst.push_back(6);
+    lst.push_back(0);
+    lst.push_back(6);
+    
+    std::list<int>::reverse_iterator ite = lst.rbegin();
+    while(ite != lst.rend()){
+        if(*ite == 0){
+            lst.erase(--(ite.base()));                          //将迭代器转为正向的
+            break;                                              //正向和反向的迭代器相差一
+        }
+        ite++;
+    }
+    for_each(lst.begin(),lst.end(),&show);
+    return 0;
+}
+```
+
+##  map
+
+​	map内部实现了一个红黑树（红黑树是非严格平衡二叉搜索树，而AVL是严格平衡二叉搜索树），红黑树具有自动排序的功能，因此map内部的所有元素都是有序的，红黑树的每一个节点都代表着map的一个元素。因此，对于map进行的查找，删除，添加等一系列的操作都相当于是对红黑树进行的操作。map中的元素是按照二叉搜索树（又名二叉查找树、二叉排序树，特点就是左子树上所有节点的键值都小于根节点的键值，右子树所有节点的键值都大于根节点的键值）存储的，使用中序遍历可将键值按照从小到大遍历出来。
+
++ 插入: O(logN)
+
++ 查看: O(logN)
+
++ 删除: O(logN)
+
+**map优点：**
+
++ 有序性，这是map结构最大的优点，其元素的有序性在很多应用中都会简化很多的操作
+
++ map的查找、删除、增加等一系列操作时间复杂度稳定，都为logn
+
+**缺点：**
+
++ 查找、删除、增加等操作平均时间复杂度较慢，与n相关
+
+**map底层红黑树与AVL**
+
+​	因为avl树是高度平衡，而红黑树通过增加节点颜色从而实现部分平衡，这就导致插入节点两者都可以最多两次实现复衡。而删除节点，红黑树最多三次旋转即可实现复衡，旋转的量级是O(1)，而avl树需要维护从被删除节点到根节点这几个节点的平衡，旋转的量级是O（logn）,所以红黑树效率更高，开销更小，但是因为红黑树是非严格平衡，所以它的查找效率比avl树低。RB-Tree是功能、性能、空间开销的折中结果。
+
+​	实际应用中，若搜索的次数远远大于插入和删除，那么选择AVL，如果搜索，插入删除次数几乎差不多，应该选择RB。
+
+```c++
+void show(std::pair<char,int> pr)
+{
+    std::cout << pr.first << " " << pr.second << std::endl;
+}
+int main()
+{
+    std::map<char,int> mp;
+    mp['a'] = 6;
+    mp['s'] = 0;
+    mp['d'] = 2;
+
+    std::map<char,int>::iterator ite = mp.begin();
+    while(ite != mp.end())
+    {
+        std::cout <<  ite->first << " " << ite->second << std::endl;
+        ite++;
+    }
+
+    mp['a'] = 606;                          //修改
+    for_each(mp.begin(),mp.end(),&show);
+    
+    ite = mp.find('s');
+    mp.erase(ite);                          //删除
+    for_each(mp.begin(),mp.end(),&show);
+
+    std::pair<char,int> pr('c',2001);       //插入
+    mp.insert(pr);
+    for_each(mp.begin(),mp.end(),&show);
+
+    std::cout << mp.count('b') << std::endl;//查找是否存在该键值
+    return 0;
+}
+```
+
+## unordered_map
+
+​	unordered_map内部实现了一个哈希表（也叫散列表，通过把关键码值映射到Hash表中一个位置来访问记录，查找的时间复杂度可达到O(1)，其在海量数据处理中有着广泛应用）。因此，其元素的排列顺序是无序的。
+
++ 查找: O(1)，最坏情况O(N)
+
++ 删除: O(1)，最坏情况O(N)
+
+**unordered_map优点：**
+
++ 查找、删除、添加的速度快，时间复杂度为常数级O(c)
+
+**缺点：**
+
++ 因为unordered_map内部基于哈希表，以（key,value）对的形式存储，因此空间占用率高
++ Unordered_map的查找、删除、添加的时间复杂度不稳定，平均为O(c)，取决于哈希函数。极端情况下可能为O(n)
+
+
+
+## set
+
+​	集合（基于红黑树实现，相当于二分查找树）
+
++ 插入: O(logN)
+
++ 查看: O(logN)
+
++ 删除: O(logN)
+
+**set和vector的区别** 
+
++ 都是能存储一连串数据的容器
++ set会自动给其中的元素从小到大排序，而vector会保持插入时的顺序
++ set会把会把重复的元素去除，只保留一个，即去重
++ vector中的元素在内存上是连续的，可以高效地按索引随机访问，set则不行
++ set中的元素可以高效地按值查找，而vector则低效，查找复杂度是O(log n)
+
+
+
+set的排序：string类型会按字典序来排序，所谓字典序就是优先比较两者第一个字符（按ASCII码比较），如果相等则继续比较下一个。
+
+
+
+![image-20220711111313834](C++.assets/image-20220711111313834.png)
+
+```c++
+int main()
+{
+	std::set<int> s = {2,0,0,1,0,6,0,6};
+	//std::set<int>::iterator s_it = s.begin()+3;	vector提供了+和+=的重载，而set没有。
+	std::set<int>::iterator s_it = s.begin();
+	++s_it;
+	++s_it;
+	++s_it;
+	std::cout << "s[3] " << *s_it << std::endl;
+	return 0;
+}
+```
+
+**std::next等价于+，支持负数**
+
+```c++
+//内部实现
+auto next(auto it,int n=1){
+	if(it is random_access){
+        return it+n;
+    }else{
+        if(it is bidirectional && n < 0){
+            while(n++)
+                --it;
+        }
+    	while(n--)
+        	++it;
+    	return it;
+    }
+}
+
+s_it = std::next(s_it,3);
+std::cout << "s[3] " << *s_it << std::endl;
+```
+
+**std::advance等价于+=，支持负数**
+
+```c++
+auto advance(auto &it,int n){
+	if(it is random_access){
+		it+=n;
+    }else{
+        if(it is bidirectional && n < 0){
+            while(n++)
+                --it;
+        }
+        while(n--)
+        ++it;
+    }
+}
+
+std::advance(s_it,3);
+std::cout << "s[3] " << *s_it << std::endl;
+```
+
+![image-20220711163932718](C++.assets/image-20220711163932718.png)
+
+
+
+**查找元素**
+
+```c++
+std::set<int> s = {2,0,0,1,0,6,0,6};
+auto it = s.find(2);
+std::cout << "2的位置: " << *it << std::endl;
+std::cout << "小于2的数: "   << *std::prev(it) << std::endl;
+std::cout << "大于2的数: "   << *std::next(it) << std::endl; 
+// if(s.find(8) != s.end())	std::cout << "8存在 " << std::endl;
+// else	std::cout << "8不存在" << std::endl;
+if(s.count(8))	std::cout << "8存在 " << std::endl;
+else	std::cout << "8不存在 " << std::endl;
+```
+
+**删除元素**
+
+```c++
+std::set<int> s = {2,0,0,1,0,6,0,6};
+auto it = s.find(2);
+s.erase(1);
+s.erase(it);
+for(auto it = s.begin();it != s.end();it++){
+	std::cout << *it << " ";
+}
+return 0;
+```
+
+![image-20220712083953070](C++.assets/image-20220712083953070.png)
+
+**从set中删除指定范围内的元素**
+
+​	erase支持输入两个迭代器作为参数
+
+​	set.erase(beg,end)可以删除集合中从beg到end之间的元素，包含beg,不包含end，[beg,end)。
+
++ lower_bound(x)：找第一个大于等于x的元素
+
++ upper_bound(x)：找第一个大于x的元素
+
+```c++
+s.erase(s.lower_bound(2),s.upper_bound(4));
+//删除set中所有满足2<=x<=4的元素
+```
+
+**set和其他容器之间的转换**
+
+​	vector的构造函数也能接受两个前向迭代器作为参数，set的迭代器符合这个要求
+
+```c++
+std::set<int> s = {2,0,0,1,0,6,0,6};
+std::vector<int> v = {s.lower_bound(1),s.upper_bound(6)}; 
+```
+
+​		vector转成set让元素自动排序和去重
+
+```c++
+std::vector<int> v = {9,8,5,2,1,1};
+std::set<int> s(v.begin(),v.end());
+v.assign(s.begin(),s.end());
+for(auto value:v){
+	std::cout << value << " ";
+}
+std::cout << std::endl;
+```
+
+​	清空set
+
+```c++
+s.clear();
+s = {};
+s.erase(s.begin(),s.end());
+```
+
++ set的不去重版本：multiset
+
++ equal_range()：一次性求出两个边界，获得等值区间
+
++ pair<iterator,iterator> equal_range(int const &val) const;
+
+```c++
+std::multiset<int> ms = {9,8,5,2,1,1};
+auto r = ms.equal_range(1);
+ms.erase(1);
+for(auto value:ms){
+	std::cout << value << " ";
+}
+return 0;
+```
+
+**C++11新增：unordered_set**
+
+​	unordered_set不会排序，里面的元素都是完全随机的顺序，和插入的顺序也不一样，基于哈希散列表实现
+
++ vector适合按索引查找，通过运算符[]
++ set适合按值相等查找，按值大于/小于查找，分别通过find()、lower_bound()、upper_bound()
++ unordered_set适合按值相等查找，通过find()
+
